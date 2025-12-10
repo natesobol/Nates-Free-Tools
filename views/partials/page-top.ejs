@@ -64,6 +64,12 @@
             <% } %>
           </div>
         </details>
+      <div class="brand">
+        <span class="brand-mark">MH</span>
+        <div class="brand-text">
+          <span class="brand-name">Monetize Hub</span>
+          <span class="brand-tagline">Launch, host, and grow your webapps</span>
+        </div>
       </div>
       <nav class="main-nav">
         <a href="/" class="nav-link">Home</a>
@@ -74,6 +80,19 @@
             <a href="/excel-to-json" class="dropdown-link">Excel → JSON</a>
           </div>
         </details>
+        <a href="/excel-to-json" class="nav-link">Excel → JSON</a>
+        <% if (currentUser) { %>
+          <% if (currentUser.role === 'admin') { %>
+            <a href="/admin" class="nav-link">Admin</a>
+          <% } %>
+          <a href="/account" class="nav-link">Account</a>
+          <form action="/logout" method="POST" class="nav-link inline-form">
+            <button type="submit">Logout</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/register" class="nav-link nav-link-primary">Create Account</a>
+        <% } %>
       </nav>
     </header>
 
