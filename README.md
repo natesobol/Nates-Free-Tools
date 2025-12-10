@@ -2,6 +2,11 @@
 
 A starter website for hosting webapps with monetization in mind. It provides a home page, about page, navigation menu, and a robust login/account system backed by SQLite.
 
+## Static preview
+- View the static landing page on GitHub Pages: https://natesobol.github.io/Nates-Free-Tools/
+- The preview uses `index.html` alongside the assets in `public/` so you see the home experience instead of the repository README.
+- Dynamic features (login, admin, Excel → JSON) require running the Node.js server locally or on a host that supports server-side rendering.
+
 ## Features
 - Home and About pages with modern UI and navigation menu
 - Registration and login with hashed passwords and persistent sessions
