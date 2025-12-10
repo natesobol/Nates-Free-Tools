@@ -20,11 +20,14 @@
     />
     <meta property="og:url" content="https://natesobol.github.io/Nates-Free-Tools/" />
     <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="./public/css/styles.css" />
     <link rel="stylesheet" href="public/css/styles.css" />
   </head>
   <body>
     <header class="site-header">
       <div class="header-top">
+        <a class="brand" href="./index.html">
+          <img src="./public/logo.png" alt="Monetize Hub" class="brand-logo" />
         <a class="brand" href="./">
           <img src="public/logo.png" alt="Monetize Hub" class="brand-logo" />
           <div class="brand-text">
@@ -38,6 +41,9 @@
             <span aria-hidden="true">▾</span>
           </summary>
           <div class="nav-dropdown-menu">
+            <a href="./login.html" class="dropdown-link">Login</a>
+            <a href="./register.html" class="dropdown-link">Create Account</a>
+            <a href="./admin.html" class="dropdown-link">Admin Dashboard</a>
             <a href="login" class="dropdown-link">Login</a>
             <a href="register" class="dropdown-link">Create Account</a>
             <a href="admin" class="dropdown-link">Admin Dashboard</a>
@@ -45,6 +51,12 @@
         </details>
       </div>
       <nav class="main-nav">
+        <a href="./index.html" class="nav-link active">Home</a>
+        <a href="./about.html" class="nav-link">About</a>
+        <details class="nav-dropdown">
+          <summary class="nav-link nav-dropdown-toggle">Webapps <span aria-hidden="true">▾</span></summary>
+          <div class="nav-dropdown-menu">
+            <a href="./excel-to-json.html" class="dropdown-link">Excel → JSON</a>
         <a href="./" class="nav-link">Home</a>
         <a href="about" class="nav-link">About</a>
         <details class="nav-dropdown">
@@ -66,6 +78,9 @@
             billing-friendly account data, and a modern navigation system to showcase your tools.
           </p>
           <div class="hero-actions">
+            <a class="button primary" href="./register.html">Get started</a>
+            <a class="button ghost" href="./about.html">See how it works</a>
+            <a class="button secondary" href="./excel-to-json.html">Convert Excel to JSON</a>
             <a class="button primary" href="register">Get started</a>
             <a class="button ghost" href="about">See how it works</a>
             <a class="button secondary" href="excel-to-json">Convert Excel to JSON</a>

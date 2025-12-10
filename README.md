@@ -4,6 +4,8 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 
 ## Static preview
 - View the static landing page on GitHub Pages: https://natesobol.github.io/Nates-Free-Tools/
+- The preview uses `index.html` plus companion static pages (`about.html`, `excel-to-json.html`, `login.html`, `register.html`, `admin.html`) so navigation works on GitHub Pages.
+- Dynamic features (login, admin, Excel → JSON downloads) require running the Node.js server locally or on a host that supports server-side rendering.
 - The preview uses `index.html` alongside the assets in `public/` so you see the home experience instead of the repository README.
 - Dynamic features (login, admin, Excel → JSON) require running the Node.js server locally or on a host that supports server-side rendering.
 
