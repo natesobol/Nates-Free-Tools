@@ -40,6 +40,9 @@ a:hover {
   flex-direction: column;
   gap: 12px;
   padding: 20px 32px 18px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
   position: sticky;
   top: 0;
   background: rgba(11, 16, 33, 0.9);
@@ -72,6 +75,21 @@ a:hover {
   padding: 6px;
   object-fit: contain;
   box-shadow: var(--shadow);
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #0b1021;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
 }
 
 .brand-text {
@@ -95,6 +113,8 @@ a:hover {
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 .nav-link {
@@ -113,6 +133,12 @@ a:hover {
   background: var(--panel-strong);
   outline: none;
   text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-link:hover {
+  background: var(--panel-strong);
 }
 
 .nav-link-primary {
