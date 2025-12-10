@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %> | Monetize Hub</title>
+    <% if (metaDescription) { %>
+      <meta name="description" content="<%= metaDescription %>" />
+    <% } %>
+    <% if (metaKeywords) { %>
+      <meta name="keywords" content="<%= metaKeywords %>" />
+    <% } %>
+    <% if (canonicalUrl) { %>
+      <link rel="canonical" href="<%= canonicalUrl %>" />
+    <% } %>
+    <% if (ogTitle) { %>
+      <meta property="og:title" content="<%= ogTitle %>" />
+    <% } %>
+    <% if (ogDescription || metaDescription) { %>
+      <meta property="og:description" content="<%= ogDescription || metaDescription %>" />
+    <% } %>
+    <% if (canonicalUrl) { %>
+      <meta property="og:url" content="<%= canonicalUrl %>" />
+    <% } %>
+    <meta property="og:type" content="website" />
+    <% if (structuredData) { %>
+      <script type="application/ld+json">
+        <%= structuredData %>
+      </script>
+    <% } %>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-mark">MH</span>
+        <div class="brand-text">
+          <span class="brand-name">Monetize Hub</span>
+          <span class="brand-tagline">Launch, host, and grow your webapps</span>
+        </div>
+      </div>
+      <nav class="main-nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/about" class="nav-link">About</a>
+        <a href="/excel-to-json" class="nav-link">Excel → JSON</a>
+        <% if (currentUser) { %>
+          <% if (currentUser.role === 'admin') { %>
+            <a href="/admin" class="nav-link">Admin</a>
+          <% } %>
+          <a href="/account" class="nav-link">Account</a>
+          <form action="/logout" method="POST" class="nav-link inline-form">
+            <button type="submit">Logout</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="nav-link">Login</a>
+          <a href="/register" class="nav-link nav-link-primary">Create Account</a>
+        <% } %>
+      </nav>
+    </header>
+
+    <% if (flash) { %>
+      <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+    <% } %>
+
+    <main class="page-body">
