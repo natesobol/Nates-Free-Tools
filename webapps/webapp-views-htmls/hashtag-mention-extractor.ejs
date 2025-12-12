@@ -1,0 +1,269 @@
+<%- include('../../views/partials/page-top', {
+  title: 'Hashtag & Mention Extractor for Social Media Files',
+  metaDescription:
+    'Upload CSV, TXT, or JSON exports to instantly pull every hashtag and @mention with frequency counts and downloadable lists.',
+  canonicalUrl: 'https://natesobol.github.io/Nates-Free-Tools/hashtag-mention-extractor',
+  ogTitle: 'Hashtag & Mention Extractor',
+  ogDescription: 'Drop in social exports to get hashtag and @mention frequency tables plus export-ready lists.'
+}) %>
+<section class="tool-hero">
+  <div>
+    <p class="eyebrow">Social listening helper</p>
+    <h1>Extract hashtags and @mentions from social exports.</h1>
+    <p class="lede">
+      Drop CSV, TXT, or JSON files from your social platform or scraping pipeline. We scan every post for hashtags and
+      @mentions, tally frequency, and let you export clean lists.
+    </p>
+    <ul class="trust-points">
+      <li>Counts and lists for both hashtags and mentions in one pass.</li>
+      <li>Case-sensitive toggle to keep #Launch separate from #launch.</li>
+      <li>Optional deduplication for exporting unique values without losing counts.</li>
+    </ul>
+  </div>
+  <div class="converter-card">
+    <form id="extract-form" enctype="multipart/form-data">
+      <label for="text">Inline text (optional)</label>
+      <textarea id="text" name="text" class="form-control" rows="5" placeholder="#launchday was huge! Thanks @OpenAI"></textarea>
+
+      <label for="file" class="mt-3">Upload .csv, .txt, or .json files</label>
+      <div class="dropzone" id="dropzone">
+        <p class="mb-2">Drag and drop or use the file picker</p>
+        <input id="file" name="files" type="file" class="form-control" accept=".csv,.txt,.json" multiple />
+      </div>
+      <p class="help-text">Files stay in memory only; nothing is saved to disk.</p>
+
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" value="true" id="caseSensitive" name="caseSensitive" />
+        <label class="form-check-label" for="caseSensitive">Case-sensitive matching</label>
+      </div>
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" value="true" id="deduplicate" name="deduplicate" />
+        <label class="form-check-label" for="deduplicate">Deduplicate lists (frequency counts stay intact)</label>
+      </div>
+
+      <button type="submit" class="button primary btn btn-primary btn-modern full-width mt-3">Extract hashtags & mentions</button>
+      <div class="flash flash-error mt-2" id="error" style="display:none;"></div>
+    </form>
+  </div>
+</section>
+
+<style>
+  .frequency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+
+  .pill-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .dropzone {
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .dropzone.dragover {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: #60a5fa;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #0b1224;
+    color: #e5e7eb;
+    padding: 0.75rem;
+    border-radius: 10px;
+    min-height: 120px;
+  }
+</style>
+
+<section class="result-panel">
+  <div class="result-card" id="results" style="display:none;">
+    <h2>Frequency breakdown</h2>
+    <p class="help-text" id="summary"></p>
+    <div class="frequency-grid">
+      <div>
+        <div class="result-card">
+          <div class="card-header">
+            <h3>Hashtags</h3>
+            <button class="btn btn-outline-light btn-modern" id="download-hashtags" type="button">Download CSV</button>
+          </div>
+          <div id="hashtag-frequency" class="pill-bar"></div>
+        </div>
+      </div>
+      <div>
+        <div class="result-card">
+          <div class="card-header">
+            <h3>Mentions</h3>
+            <button class="btn btn-outline-light btn-modern" id="download-mentions" type="button">Download CSV</button>
+          </div>
+          <div id="mention-frequency" class="pill-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div class="result-grid" id="items" style="margin-top: 1rem;"></div>
+  </div>
+  <div class="result-card" id="empty">
+    <h2>What you get</h2>
+    <ul class="checklist">
+      <li>Counts of every hashtag and @mention across all inputs.</li>
+      <li>Per-file lists to quickly export or copy.</li>
+      <li>CSV downloads of aggregated hashtag and mention frequencies.</li>
+    </ul>
+  </div>
+</section>
+
+<template id="item-template">
+  <article class="result-card">
+    <div class="card-header">
+      <h3 class="source"></h3>
+      <div class="pill-bar metrics"></div>
+    </div>
+    <p class="help-text kind"></p>
+    <div class="grid" style="gap: 0.75rem; margin-top: 0.5rem;">
+      <div>
+        <p class="help-text">Hashtags</p>
+        <pre class="hashtags"></pre>
+      </div>
+      <div>
+        <p class="help-text">Mentions</p>
+        <pre class="mentions"></pre>
+      </div>
+    </div>
+    <div class="flash flash-error" style="display:none;"></div>
+  </article>
+</template>
+
+<script>
+  const form = document.getElementById('extract-form');
+  const errorBox = document.getElementById('error');
+  const results = document.getElementById('results');
+  const emptyState = document.getElementById('empty');
+  const summary = document.getElementById('summary');
+  const hashtagFrequencyEl = document.getElementById('hashtag-frequency');
+  const mentionFrequencyEl = document.getElementById('mention-frequency');
+  const items = document.getElementById('items');
+  const downloadHashtagsBtn = document.getElementById('download-hashtags');
+  const downloadMentionsBtn = document.getElementById('download-mentions');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file');
+
+  let latestHashtagFrequency = [];
+  let latestMentionFrequency = [];
+
+  dropzone.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (event.dataTransfer?.files?.length) {
+      fileInput.files = event.dataTransfer.files;
+    }
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.style.display = 'none';
+    results.style.display = 'none';
+    emptyState.style.display = 'none';
+    hashtagFrequencyEl.innerHTML = '';
+    mentionFrequencyEl.innerHTML = '';
+    items.innerHTML = '';
+
+    const data = new FormData(form);
+    data.set('caseSensitive', document.getElementById('caseSensitive').checked);
+    data.set('deduplicate', document.getElementById('deduplicate').checked);
+
+    try {
+      const response = await fetch('/api/extract', { method: 'POST', body: data });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to extract.');
+      }
+
+      summary.textContent = `Found ${payload.totals.hashtags} hashtags and ${payload.totals.mentions} mentions across ${payload.totals.inputs} inputs.`;
+
+      latestHashtagFrequency = payload.hashtagFrequency || [];
+      latestMentionFrequency = payload.mentionFrequency || [];
+      renderFrequency(hashtagFrequencyEl, latestHashtagFrequency, '#');
+      renderFrequency(mentionFrequencyEl, latestMentionFrequency, '@');
+
+      payload.results.forEach((item) => {
+        const node = document.getElementById('item-template').content.cloneNode(true);
+        node.querySelector('.source').textContent = item.source;
+        node.querySelector('.kind').textContent = item.kind.toUpperCase();
+
+        const pills = node.querySelector('.metrics');
+        pills.appendChild(createPill(`${item.hashtagCount} hashtags`));
+        pills.appendChild(createPill(`${item.mentionCount} mentions`));
+
+        if (item.error) {
+          const alert = node.querySelector('.flash');
+          alert.textContent = item.error;
+          alert.style.display = 'block';
+        } else {
+          node.querySelector('.hashtags').textContent = item.hashtags?.join('\n') || '—';
+          node.querySelector('.mentions').textContent = item.mentions?.join('\n') || '—';
+        }
+
+        items.appendChild(node);
+      });
+
+      results.style.display = 'block';
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.style.display = 'block';
+      emptyState.style.display = 'block';
+    }
+  });
+
+  downloadHashtagsBtn.addEventListener('click', () => downloadCsv(latestHashtagFrequency, 'hashtag-frequency.csv'));
+  downloadMentionsBtn.addEventListener('click', () => downloadCsv(latestMentionFrequency, 'mention-frequency.csv'));
+
+  function renderFrequency(container, data, prefix) {
+    if (!data.length) {
+      container.textContent = 'No matches yet.';
+      return;
+    }
+
+    data.forEach((entry) => {
+      container.appendChild(createPill(`${prefix}${entry.value} • ${entry.count}`));
+    });
+  }
+
+  function createPill(text) {
+    const pill = document.createElement('span');
+    pill.classList.add('pill');
+    pill.textContent = text;
+    return pill;
+  }
+
+  function downloadCsv(data, filename) {
+    if (!data || !data.length) {
+      return;
+    }
+
+    const header = 'value,count';
+    const rows = data.map((entry) => `${entry.value},${entry.count}`);
+    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+</script>
+<%- include('../../views/partials/page-bottom') %>
