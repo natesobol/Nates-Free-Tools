@@ -33,6 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/json-combiner', express.static(path.join(__dirname, 'apps/json-combiner/wwwroot')));
 app.use('/pdf-splitter', express.static(path.join(__dirname, 'apps/pdf-splitter/wwwroot')));
+app.use('/powerpoint-to-pdf', express.static(path.join(__dirname, 'apps/powerpoint-to-pdf/wwwroot')));
 app.use(morgan('dev'));
 
 app.use(
@@ -60,6 +61,7 @@ app.use('/', authRoutes);
 app.use('/', adminRoutes);
 app.use('/', excelRoutes);
 app.use('/', csvXmlRoutes);
+app.use('/', powerpointRoutes);
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Not found' });
