@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hashtag & Mention Extractor</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+
+  <link rel="stylesheet" href="/css/webapp-theme.css" />
+  <script src="/js/site-chrome.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="app-header">
+      <p class="pill">C# webapp • Social text parsing</p>
+      <h1>Extract hashtags and @mentions from CSV, TXT, or JSON exports.</h1>
+      <p class="muted">Upload exported posts or paste a feed and instantly gather frequency counts and exportable lists.</p>
+    </header>
+
+    <section class="card">
+      <form id="extract-form">
+        <label for="text">Inline text (optional)</label>
+        <textarea id="text" name="text" placeholder="#launchday was 🔥 — thanks @community!"></textarea>
+
+        <label for="files" style="margin-top: 1rem;">Upload exports (.csv, .txt, .json)</label>
+        <input type="file" id="files" name="files" accept=".csv,.txt,.json" multiple />
+        <small class="muted">Files stay in memory only—nothing is stored or shared.</small>
+
+        <div class="grid" style="margin-top: 1rem; align-items: center;">
+          <div>
+            <label><input type="checkbox" id="caseSensitive" name="caseSensitive" /> Case-sensitive matching</label>
+            <p class="muted">Turn on to separate #Launch and #launch.</p>
+          </div>
+          <div>
+            <label><input type="checkbox" id="deduplicate" name="deduplicate" /> Deduplicate lists</label>
+            <p class="muted">Keep frequency counts intact while exporting unique values.</p>
+          </div>
+          <div style="text-align: right;">
+            <button type="submit">Extract hashtags & mentions</button>
+            <div id="error" class="error" style="display:none; margin-top:0.5rem;"></div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top: 1.25rem;">
+      <div id="results" style="display:none;">
+        <p class="success" id="summary"></p>
+        <div class="grid" style="gap: 1rem;">
+          <div>
+            <div class="stat">
+              <div class="stat-header">
+                <h3>Hashtag frequency</h3>
+                <button id="download-hashtags" class="secondary" type="button">Download CSV</button>
+              </div>
+              <div id="hashtag-frequency" class="pill-bar"></div>
+            </div>
+          </div>
+          <div>
+            <div class="stat">
+              <div class="stat-header">
+                <h3>Mention frequency</h3>
+                <button id="download-mentions" class="secondary" type="button">Download CSV</button>
+              </div>
+              <div id="mention-frequency" class="pill-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div id="items" class="grid" style="gap: 1rem; margin-top: 1rem;"></div>
+      </div>
+      <div id="empty" class="muted">Upload files or paste text to pull hashtags and @mentions.</div>
+    </section>
+  </main>
+
+  <template id="item-template">
+    <div class="stat">
+      <strong class="source"></strong>
+      <p class="muted kind"></p>
+      <div class="pill-bar metrics"></div>
+      <div class="grid" style="gap: 0.5rem; margin-top: 0.5rem;">
+        <div>
+          <p class="muted" style="margin-bottom: 0.25rem;">Hashtags</p>
+          <pre class="hashtags"></pre>
+        </div>
+        <div>
+          <p class="muted" style="margin-bottom: 0.25rem;">Mentions</p>
+          <pre class="mentions"></pre>
+        </div>
+      </div>
+      <div class="error" style="display:none;"></div>
+    </div>
+  </template>
+
+  <script>
+    const form = document.getElementById('extract-form');
+    const errorBox = document.getElementById('error');
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    const items = document.getElementById('items');
+    const emptyState = document.getElementById('empty');
+    const hashtagFrequencyEl = document.getElementById('hashtag-frequency');
+    const mentionFrequencyEl = document.getElementById('mention-frequency');
+    const downloadHashtagsBtn = document.getElementById('download-hashtags');
+    const downloadMentionsBtn = document.getElementById('download-mentions');
+
+    let latestHashtagFrequency = [];
+    let latestMentionFrequency = [];
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      results.style.display = 'none';
+      emptyState.style.display = 'none';
+      items.innerHTML = '';
+      hashtagFrequencyEl.innerHTML = '';
+      mentionFrequencyEl.innerHTML = '';
+
+      const data = new FormData();
+      const files = document.getElementById('files').files;
+      for (const file of files) {
+        data.append('files', file);
+      }
+
+      data.set('text', document.getElementById('text').value);
+      data.set('caseSensitive', document.getElementById('caseSensitive').checked);
+      data.set('deduplicate', document.getElementById('deduplicate').checked);
+
+      try {
+        const response = await fetch('/api/extract', { method: 'POST', body: data });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Extraction failed.');
+        }
+
+        summary.textContent = `Found ${payload.totals.hashtags} hashtags and ${payload.totals.mentions} mentions across ${payload.totals.inputs} inputs.`;
+
+        latestHashtagFrequency = payload.hashtagFrequency || [];
+        latestMentionFrequency = payload.mentionFrequency || [];
+        renderFrequency(hashtagFrequencyEl, latestHashtagFrequency, '#');
+        renderFrequency(mentionFrequencyEl, latestMentionFrequency, '@');
+
+        payload.results.forEach((result) => {
+          const node = document.getElementById('item-template').content.cloneNode(true);
+          node.querySelector('.source').textContent = result.source;
+          node.querySelector('.kind').textContent = result.kind.toUpperCase();
+
+          const pillBar = node.querySelector('.metrics');
+          pillBar.appendChild(createPill(`${result.hashtagCount} hashtags`));
+          pillBar.appendChild(createPill(`${result.mentionCount} mentions`));
+
+          if (result.error) {
+            const errorEl = node.querySelector('.error');
+            errorEl.textContent = result.error;
+            errorEl.style.display = 'block';
+          } else {
+            node.querySelector('.hashtags').textContent = result.hashtags?.join('\n') || '—';
+            node.querySelector('.mentions').textContent = result.mentions?.join('\n') || '—';
+          }
+
+          items.appendChild(node);
+        });
+
+        results.style.display = 'block';
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.style.display = 'block';
+        emptyState.style.display = 'block';
+      }
+    });
+
+    downloadHashtagsBtn.addEventListener('click', () => downloadCsv(latestHashtagFrequency, 'hashtag-frequency.csv'));
+    downloadMentionsBtn.addEventListener('click', () => downloadCsv(latestMentionFrequency, 'mention-frequency.csv'));
+
+    function renderFrequency(container, data, prefix) {
+      if (!data.length) {
+        container.textContent = 'No matches found yet.';
+        return;
+      }
+
+      data.forEach((entry) => {
+        const pill = createPill(`${prefix}${entry.value} • ${entry.count}`);
+        container.appendChild(pill);
+      });
+    }
+
+    function createPill(text) {
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = text;
+      return pill;
+    }
+
+    function downloadCsv(data, filename) {
+      if (!data || !data.length) {
+        return;
+      }
+
+      const header = 'value,count';
+      const rows = data.map((entry) => `${entry.value},${entry.count}`);
+      const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
