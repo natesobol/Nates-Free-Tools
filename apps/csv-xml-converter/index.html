@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV/XML Data Converter | Monetize Hub</title>
+    <meta
+      name="description"
+      content="Convert CSV to XML or XML to CSV instantly in the browser. Paste data or upload a file and download the result."
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="../../public/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-top">
+        <a class="brand" href="../../index.html">
+          <img src="../../public/logo.png" alt="Monetize Hub" class="brand-logo" />
+          <div class="brand-text">
+            <span class="brand-name">Monetize Hub</span>
+            <span class="brand-tagline">Launch, host, and grow your webapps</span>
+          </div>
+        </a>
+        <details class="nav-dropdown user-dropdown" open>
+          <summary class="nav-link nav-dropdown-toggle">
+            <span class="user-label">Account</span>
+            <span aria-hidden="true">▾</span>
+          </summary>
+          <div class="nav-dropdown-menu">
+            <a href="../../login.html" class="dropdown-link">Login</a>
+            <a href="../../register.html" class="dropdown-link">Create Account</a>
+            <a href="../../admin.html" class="dropdown-link">Admin Dashboard</a>
+          </div>
+        </details>
+      </div>
+      <nav class="main-nav">
+        <a href="../../index.html" class="nav-link">Home</a>
+        <a href="../../about.html" class="nav-link">About</a>
+        <details class="nav-dropdown">
+          <summary class="nav-link nav-dropdown-toggle">Webapps <span aria-hidden="true">▾</span></summary>
+          <div class="nav-dropdown-menu">
+            <a href="../excel-to-json/index.html" class="dropdown-link">Excel → JSON</a>
+            <a href="../json-combiner/wwwroot/index.html" class="dropdown-link">JSON Combiner</a>
+            <a href="./index.html" class="dropdown-link">CSV/XML Converter</a>
+          </div>
+        </details>
+      </nav>
+    </header>
+
+    <main class="page-body">
+      <section class="tool-hero">
+        <div>
+          <p class="eyebrow">CSV/XML Data Converter</p>
+          <h1>Convert CSV to XML or XML back to CSV instantly.</h1>
+          <p class="lede">
+            Upload a small CSV or XML file, or paste your data directly into the editor. The converter returns a clean,
+            well-formed XML payload or a ready-to-use CSV file for APIs, integrations, and configuration exports.
+          </p>
+          <ul class="trust-points">
+            <li>Handles headers and nested XML into normalized rows.</li>
+            <li>Preview the converted payload before downloading.</li>
+            <li>No data is persisted—everything happens in-memory per request.</li>
+          </ul>
+        </div>
+        <div class="converter-card">
+          <form id="converter-form">
+            <label for="direction">Choose conversion mode</label>
+            <select id="direction" name="direction" required>
+              <option value="csv-to-xml">CSV → XML</option>
+              <option value="xml-to-csv">XML → CSV</option>
+            </select>
+            <label for="dataInput" class="mt-2">Paste data (CSV or XML)</label>
+            <textarea
+              id="dataInput"
+              name="dataInput"
+              rows="7"
+              placeholder="Paste CSV with headers or XML with repeating row elements"
+            ></textarea>
+            <div class="file-row">
+              <label for="dataFile">Or upload a file</label>
+              <input type="file" id="dataFile" name="dataFile" accept=".csv,.xml,text/xml,text/csv" />
+            </div>
+            <p class="help-text">Processing runs in your browser—no uploads are stored.</p>
+            <button type="submit" class="button primary btn btn-primary btn-modern full-width">Convert now</button>
+          </form>
+          <div id="error" class="flash flash-error" role="alert" style="display: none"></div>
+        </div>
+      </section>
+
+      <section class="result-panel">
+        <div class="result-card">
+          <h2>Converted output</h2>
+          <p class="help-text">Preview the converted payload. Download the file or copy the text for quick use.</p>
+          <textarea id="output" readonly class="code-block" rows="14">&lt;dataset&gt;
+  &lt;row&gt;
+    &lt;column&gt;value&lt;/column&gt;
+  &lt;/row&gt;
+&lt;/dataset&gt;
+</textarea>
+          <div class="download-row">
+            <button id="download" class="button primary btn btn-primary btn-modern" disabled>Download file</button>
+            <p class="help-text">Copy or save the converted payload to use in your workflow.</p>
+          </div>
+        </div>
+        <div class="result-card">
+          <h2>Conversion tips</h2>
+          <ul class="checklist">
+            <li>Include a header row in CSV files so element names map cleanly into XML.</li>
+            <li>XML payloads should have repeating child nodes (for example, &lt;rows&gt;&lt;row&gt;...&lt;/row&gt;&lt;/rows&gt;).</li>
+            <li>Nested XML objects are flattened and stringified to keep CSV columns predictable.</li>
+            <li>Use UTF-8 text encoding for the most reliable parsing results.</li>
+          </ul>
+          <p class="help-text">
+            Need to automate this flow? Protect the endpoint with authentication, add rate limits, or extend the parsing rules to
+            fit your data contracts.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('converter-form');
+      const output = document.getElementById('output');
+      const downloadBtn = document.getElementById('download');
+      const errorEl = document.getElementById('error');
+
+      const downloadFile = (content, fileName) => {
+        const blob = new Blob([content], { type: fileName.endsWith('.csv') ? 'text/csv' : 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      };
+
+      const csvToXml = csvText => {
+        const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) throw new Error('CSV must include a header row and at least one data row.');
+        const headers = lines[0].split(',').map(h => h.trim());
+        const rows = lines.slice(1).map(line => {
+          const cells = line.split(',');
+          const row = {};
+          headers.forEach((header, idx) => {
+            row[header || `column${idx + 1}`] = cells[idx] ? cells[idx].trim() : '';
+          });
+          return row;
+        });
+        const rowXml = rows
+          .map(row => {
+            const cells = Object.entries(row)
+              .map(([key, value]) => `    <${key}>${(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</${key}>`)
+              .join('\n');
+            return `  <row>\n${cells}\n  </row>`;
+          })
+          .join('\n');
+        return `<dataset>\n${rowXml}\n</dataset>`;
+      };
+
+      const xmlToCsv = xmlText => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlText, 'application/xml');
+        const parseError = doc.querySelector('parsererror');
+        if (parseError) throw new Error('Invalid XML provided.');
+        const rows = Array.from(doc.querySelectorAll('row, record'));
+        if (!rows.length) throw new Error('No <row> or <record> elements found.');
+        const headers = new Set();
+        const data = rows.map(row => {
+          const rowObj = {};
+          Array.from(row.children).forEach(child => {
+            headers.add(child.tagName);
+            rowObj[child.tagName] = child.textContent || '';
+          });
+          return rowObj;
+        });
+        const headerList = Array.from(headers);
+        const csvLines = [headerList.join(',')];
+        data.forEach(row => {
+          const line = headerList.map(key => (row[key] || '').replace(/"/g, '""'));
+          csvLines.push(line.join(','));
+        });
+        return csvLines.join('\n');
+      };
+
+      const resetError = () => {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+      };
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        resetError();
+        const direction = form.direction.value;
+        const file = form.dataFile.files[0];
+        let text = form.dataInput.value.trim();
+
+        if (file) {
+          text = await file.text();
+        }
+
+        if (!text) {
+          errorEl.textContent = 'Please paste data or choose a file to convert.';
+          errorEl.style.display = 'block';
+          return;
+        }
+
+        try {
+          const result = direction === 'csv-to-xml' ? csvToXml(text) : xmlToCsv(text);
+          output.value = result;
+          downloadBtn.disabled = false;
+          downloadBtn.onclick = () => downloadFile(result, direction === 'csv-to-xml' ? 'converted.xml' : 'converted.csv');
+        } catch (err) {
+          errorEl.textContent = err.message || 'We could not process that data. Please try again.';
+          errorEl.style.display = 'block';
+          downloadBtn.disabled = true;
+        }
+      });
+    </script>
+  </body>
+</html>
