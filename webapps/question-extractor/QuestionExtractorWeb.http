@@ -1,0 +1,14 @@
+@QuestionExtractorWeb_HostAddress = http://localhost:5071
+
+### Extract questions from uploaded documents
+POST {{QuestionExtractorWeb_HostAddress}}/api/questions/extract?includeContext=true&keywords=why,how&minLength=10&exportCsv=false
+Accept: application/json
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="files"; filename="sample.txt"
+Content-Type: text/plain
+
+What is your name?
+This is a statement. Why is the sky blue?
+--boundary--
