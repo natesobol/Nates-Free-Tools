@@ -1,0 +1,98 @@
+<%- include('../../views/partials/page-top') %>
+<section class="tool-hero">
+  <div>
+    <p class="eyebrow">CSV/XML Data Converter</p>
+    <h1>Convert CSV to XML or XML back to CSV instantly.</h1>
+    <p class="lede">
+      Upload a small CSV or XML file, or paste your data directly into the editor. The converter returns a clean,
+      well-formed XML payload or a ready-to-use CSV file for APIs, integrations, and configuration exports.
+    </p>
+    <ul class="trust-points">
+      <li>Handles headers and nested XML into normalized rows.</li>
+      <li>Preview the converted payload before downloading.</li>
+      <li>No data is persisted—everything happens in-memory per request.</li>
+    </ul>
+  </div>
+  <div class="converter-card">
+    <form action="/csv-xml-converter" method="POST" enctype="multipart/form-data">
+      <label for="direction">Choose conversion mode</label>
+      <select id="direction" name="direction" required>
+        <option value="csv-to-xml" <%= direction === 'csv-to-xml' ? 'selected' : '' %>>CSV → XML</option>
+        <option value="xml-to-csv" <%= direction === 'xml-to-csv' ? 'selected' : '' %>>XML → CSV</option>
+      </select>
+      <label for="dataInput" class="mt-2">Paste data (CSV or XML)</label>
+      <textarea
+        id="dataInput"
+        name="dataInput"
+        rows="7"
+        placeholder="Paste CSV with headers or XML with repeating row elements"
+      ><%- input || '' %></textarea>
+      <div class="file-row">
+        <label for="dataFile">Or upload a file</label>
+        <input type="file" id="dataFile" name="dataFile" accept=".csv,.xml,text/xml,text/csv" />
+      </div>
+      <p class="help-text">We only keep your data in memory for conversion.</p>
+      <button type="submit" class="button primary btn btn-primary btn-modern full-width">Convert now</button>
+    </form>
+    <% if (error) { %>
+      <div class="flash flash-error" role="alert"><%= error %></div>
+    <% } %>
+  </div>
+</section>
+
+<section class="result-panel">
+  <div class="result-card">
+    <h2>Converted output</h2>
+    <p class="help-text">Preview the converted payload. Download the file or copy the text for quick use.</p>
+    <% if (result) { %>
+      <p class="success-text">
+        Generated <%= result.direction === 'csv-to-xml' ? 'XML' : 'CSV' %> from your <%= result.sourceLabel %>.
+      </p>
+      <textarea readonly class="code-block" rows="14"><%= result.output %></textarea>
+      <div class="download-row">
+        <form action="/csv-xml-converter/download" method="POST">
+          <input type="hidden" name="payload" value="<%= result.downloadPayload %>" />
+          <input type="hidden" name="fileName" value="<%= result.fileName %>" />
+          <button type="submit" class="button primary btn btn-primary btn-modern">Download file</button>
+        </form>
+        <p class="help-text">Copy or save the converted payload to use in your workflow.</p>
+      </div>
+    <% } else { %>
+      <textarea readonly class="code-block" rows="14">&lt;dataset&gt;
+  &lt;row&gt;
+    &lt;column&gt;value&lt;/column&gt;
+  &lt;/row&gt;
+&lt;/dataset&gt;
+</textarea>
+      <p class="help-text">Submit CSV or XML data to replace this sample output.</p>
+    <% } %>
+  </div>
+  <div class="result-card">
+    <h2>Conversion tips</h2>
+    <ul class="checklist">
+      <li>Include a header row in CSV files so element names map cleanly into XML.</li>
+      <li>XML payloads should have repeating child nodes (for example, &lt;rows&gt;&lt;row&gt;...&lt;/row&gt;&lt;/rows&gt;).</li>
+      <li>Nested XML objects are flattened and stringified to keep CSV columns predictable.</li>
+      <li>Use UTF-8 text encoding for the most reliable parsing results.</li>
+    </ul>
+    <p class="help-text">
+      Need to automate this flow? Protect the endpoint with authentication, add rate limits, or extend the parsing rules to fit
+      your data contracts.
+    </p>
+  </div>
+</section>
+
+<section class="seo-content">
+  <h2>Ship CSV/XML conversions without writing scripts</h2>
+  <p>
+    Sobolsoft's CSV To XML Converter inspired this streamlined browser-based utility. Teams often need to turn CSV exports into
+    XML for partner APIs, configuration files, or infrastructure templates. Likewise, consuming XML feeds often means
+    normalizing the data back into CSV. This tool handles both paths quickly and securely.
+  </p>
+  <p>
+    Paste or upload your data, preview the transformation, and download the payload instantly. Because everything runs on the
+    server with in-memory processing, no files are stored or shared. You get predictable, well-formed output that works for
+    integrations, proofs of concept, or production pipelines.
+  </p>
+</section>
+<%- include('../../views/partials/page-bottom') %>

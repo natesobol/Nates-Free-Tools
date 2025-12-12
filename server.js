@@ -10,6 +10,7 @@ import authRoutes from './src/routes/auth.js';
 import pageRoutes from './src/routes/pages.js';
 import adminRoutes from './src/routes/admin.js';
 import excelRoutes from './apps/excel-to-json/src/routes/excel.js';
+import csvXmlRoutes from './apps/csv-xml-converter/src/routes/csv-xml.js';
 import { setUserLocals } from './src/middleware/auth.js';
 import './src/db.js';
 
@@ -24,12 +25,14 @@ const SQLiteStore = SQLiteStoreFactory(session);
 app.set('view engine', 'ejs');
 app.set('views', [
   path.join(__dirname, 'views'),
-  path.join(__dirname, 'apps/excel-to-json/views')
+  path.join(__dirname, 'apps/excel-to-json/views'),
+  path.join(__dirname, 'apps/csv-xml-converter/views')
 ]);
 
 app.use(helmet());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/json-combiner', express.static(path.join(__dirname, 'apps/json-combiner/wwwroot')));
 app.use(morgan('dev'));
 
 app.use(
@@ -56,6 +59,7 @@ app.use('/', pageRoutes);
 app.use('/', authRoutes);
 app.use('/', adminRoutes);
 app.use('/', excelRoutes);
+app.use('/', csvXmlRoutes);
 
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Not found' });
