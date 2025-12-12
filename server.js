@@ -77,6 +77,10 @@ app.use('/resume-contact-extractor', express.static(path.join(__dirname, 'apps/r
 app.use('/sentence-keyword-extractor', express.static(path.join(__dirname, 'apps/sentence-keyword-extractor/wwwroot')));
 app.use('/tabify-untabify', express.static(path.join(__dirname, 'apps/tabify-untabify/wwwroot')));
 app.use('/table-data-extractor', express.static(path.join(__dirname, 'apps/table-data-extractor/wwwroot')));
+app.use(
+  '/excel-highlighted-row-extractor',
+  express.static(path.join(__dirname, 'apps/excel-highlighted-row-extractor/wwwroot'))
+);
 app.use('/table-of-contents-extractor', express.static(path.join(__dirname, 'apps/table-of-contents-extractor/wwwroot')));
 app.use('/text-url-extractor', express.static(path.join(__dirname, 'apps/text-url-extractor/wwwroot')));
 app.use('/timestamp-extractor', express.static(path.join(__dirname, 'apps/timestamp-extractor/wwwroot')));
