@@ -26,6 +26,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - PDF Link Extractor: `/apps/pdf-link-extractor/wwwroot/index.html`
 - Hyperlinked Text Extractor: `/apps/hyperlink-text-extractor/wwwroot/index.html`
 - Resume Contact Info Extractor: `/apps/resume-contact-extractor/wwwroot/index.html`
+- List Structure Extractor: `/apps/list-structure-extractor/wwwroot/index.html`
 - Color Extractor: `/apps/color-extractor/wwwroot/index.html`
 - Image Path Extractor: `/apps/image-path-extractor/wwwroot/index.html`
 - File Path Extractor: `/apps/file-path-extractor/wwwroot/index.html`
@@ -36,6 +37,9 @@ A starter website for hosting webapps with monetization in mind. It provides a h
  - IP & Port Extractor: `/apps/ip-port-extractor/wwwroot/index.html`
  - YouTube Shorts Downloader (C#): `/apps/youtube-shorts-downloader/wwwroot/index.html`
  - Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
+- IP & Port Extractor: `/apps/ip-port-extractor/wwwroot/index.html`
+- Audio-Only Extractor: `/apps/audio-only-extractor/wwwroot/index.html`
+- Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
 - Home and About pages with modern UI and navigation menu
@@ -198,6 +202,20 @@ cd apps/file-path-extractor
 dotnet run
 ```
 
+### Facebook Reel & Video Downloader
+Located in `apps/facebook-reel-downloader/`, this C# minimal API extracts MP4 download links from public Facebook videos and Reels.
+
+**Features:**
+- Paste any Facebook video or Reel URL to detect SD and HD playback sources when available.
+- Optional session cookie field enables fetching public group content that requires login, while private media stays unsupported.
+- Streams MP4 downloads directly from the extracted CDN URLs with sanitized file names.
+
+**Run locally:**
+```bash
+cd apps/facebook-reel-downloader
+dotnet run
+```
+
 ### Find & Replace Utility
 Located in `apps/find-and-replace/`, this .NET minimal API performs bulk find-and-replace operations across pasted text or uploaded files.
 
@@ -301,6 +319,17 @@ Located in `apps/pdf-link-extractor/`, this C#-hosted webapp extracts every URL 
 **Server Route:** `/pdf-link-extractor`
 **Static Version:** `/apps/pdf-link-extractor/wwwroot/index.html`
 
+### Podcast Episode Downloader
+Located in `apps/podcast-episode-downloader/`, this ASP.NET Core webapp reads public podcast RSS feeds (or direct episode links) to queue audio downloads.
+
+**Features:**
+- Paste a feed URL to preview episodes with title, publish date, and duration
+- Select one or more episodes to download as MP3s
+- Multiple selections are automatically bundled into a ZIP archive for easier archiving
+
+**Server Route:** `/podcast-episode-downloader`
+**Static Version:** `/apps/podcast-episode-downloader/wwwroot/index.html`
+
 ### Batch PDF Text Extractor
 Located in `apps/batch-pdf-text-extractor/`, this .NET 8 minimal API extracts text from many PDFs at once with layered fallbacks.
 
@@ -377,6 +406,21 @@ Located in `apps/timestamp-extractor/`, this ASP.NET Core webapp extracts timest
 **Run locally:**
 ```bash
 cd apps/timestamp-extractor
+dotnet run
+```
+
+### Document Comment Extractor
+Located in `apps/document-comment-extractor/`, this ASP.NET Core webapp pulls reviewer notes, annotations, and threaded replies from Word, PDF, and RTF files (including Google Docs .docx exports).
+
+**Features:**
+- Upload `.docx`, `.pdf`, or `.rtf` files
+- Extract comment text, author, and paragraph/page hints
+- Optional reply grouping to keep comment threads together
+- Export results to CSV, XLSX, or JSON
+
+**Run locally:**
+```bash
+cd apps/document-comment-extractor
 dotnet run
 ```
 

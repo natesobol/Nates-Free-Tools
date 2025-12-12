@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>List Structure Extractor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <style>
+        body {
+            padding: 1.5rem;
+            background: radial-gradient(circle at top left, #f8fafc, #eef2ff);
+        }
+        main {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .results-table {
+            max-height: 360px;
+            overflow: auto;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            background: #e0e7ff;
+            color: #3730a3;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            background: #eef2ff;
+            color: #312e81;
+            font-size: 0.95rem;
+            margin-right: 0.35rem;
+        }
+        .pill small { color: #4b5563; }
+        .files-preview {
+            border: 1px dashed #cbd5e1;
+            padding: 0.75rem;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .muted { color: #6b7280; }
+        textarea { min-height: 120px; }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>Extract List Items with Structure</h1>
+            <p class="muted">Upload .docx, .pdf, .txt, or .md files to pull every bulleted or numbered item, including list nesting and the nearest heading.</p>
+            <div>
+                <span class="pill">Nested levels <small>indentation aware</small></span>
+                <span class="pill">Headings <small>captured when present</small></span>
+                <span class="pill">Exports <small>JSON · CSV · TXT</small></span>
+            </div>
+        </header>
+
+        <section>
+            <form id="extract-form">
+                <label>Upload files (multiple allowed)
+                    <input type="file" id="files" name="files" accept=".docx,.pdf,.txt,.md" multiple required />
+                </label>
+                <label>Choose export format
+                    <select id="outputFormat" name="outputFormat">
+                        <option value="json">JSON (inline preview)</option>
+                        <option value="csv">CSV (download)</option>
+                        <option value="txt">Flat text (download)</option>
+                    </select>
+                </label>
+                <button type="submit">Extract list items</button>
+            </form>
+        </section>
+
+        <section id="status" class="muted"></section>
+
+        <section id="results" hidden>
+            <h3>Results</h3>
+            <div id="summary" class="files-preview"></div>
+            <div class="results-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Item</th>
+                            <th>List Level</th>
+                            <th>Parent Heading</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const form = document.getElementById('extract-form');
+        const statusEl = document.getElementById('status');
+        const resultsSection = document.getElementById('results');
+        const resultsBody = document.getElementById('results-body');
+        const summaryEl = document.getElementById('summary');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            statusEl.textContent = 'Processing…';
+            resultsSection.hidden = true;
+            resultsBody.innerHTML = '';
+            summaryEl.innerHTML = '';
+
+            const files = document.getElementById('files').files;
+            if (!files.length) {
+                statusEl.textContent = 'Please upload at least one file.';
+                return;
+            }
+
+            const format = document.getElementById('outputFormat').value;
+            const formData = new FormData();
+            Array.from(files).forEach(file => formData.append('files', file));
+            formData.append('outputFormat', format);
+
+            try {
+                const response = await fetch('/api/extract-lists', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ error: response.statusText }));
+                    throw new Error(error.error || 'Extraction failed');
+                }
+
+                if (format === 'csv' || format === 'txt') {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = format === 'csv' ? 'list-items.csv' : 'list-items.txt';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    statusEl.textContent = 'Download ready!';
+                    return;
+                }
+
+                const payload = await response.json();
+                renderResults(payload);
+                statusEl.textContent = '';
+            } catch (err) {
+                statusEl.textContent = err.message || 'Something went wrong';
+            }
+        });
+
+        function renderResults(payload) {
+            const { files = [], totalItems = 0 } = payload;
+            resultsSection.hidden = false;
+
+            summaryEl.innerHTML = `<strong>${totalItems}</strong> items found across <strong>${files.length}</strong> file(s).`;
+
+            files.forEach(file => {
+                (file.items || []).forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${file.fileName || ''}</td>
+                        <td>${item.item || ''}</td>
+                        <td><span class="badge">${item.listLevel}</span></td>
+                        <td>${item.parentHeading || '<em>(none)</em>'}</td>
+                    `;
+                    resultsBody.appendChild(row);
+                });
+            });
+
+            if (!resultsBody.children.length) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4" class="muted">No list items detected.</td>';
+                resultsBody.appendChild(row);
+            }
+        }
+    </script>
+</body>
+</html>
