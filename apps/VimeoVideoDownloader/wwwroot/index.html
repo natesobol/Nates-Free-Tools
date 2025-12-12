@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vimeo Video Downloader</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <style>
+        body { max-width: 920px; margin: 2rem auto; }
+        pre { background: #0e1116; color: #f4f4f4; padding: 1rem; border-radius: 6px; }
+        .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+        .download-card { border: 1px solid #e0e0e0; padding: 1rem; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Vimeo Video Downloader</h1>
+        <p>Download public Vimeo videos in MP4 or MOV with optional password and resolution filtering.</p>
+        <form id="download-form">
+            <label>
+                Vimeo URL
+                <input type="url" name="url" id="url" placeholder="https://vimeo.com/123456789" required />
+            </label>
+            <label>
+                Password (optional for protected videos)
+                <input type="text" name="password" id="password" placeholder="Enter password if required" />
+            </label>
+            <div class="grid">
+                <label>
+                    Preferred Format
+                    <select name="preferredFormat" id="preferredFormat">
+                        <option value="mp4">MP4</option>
+                        <option value="mov">MOV</option>
+                    </select>
+                </label>
+                <label>
+                    Preferred Resolution (e.g. 1080p)
+                    <input type="text" name="preferredResolution" id="preferredResolution" placeholder="1080p" />
+                </label>
+            </div>
+            <button type="button" id="check-options">Check download options</button>
+            <button type="submit">Download now</button>
+        </form>
+
+        <section id="options" hidden>
+            <h2>Available files</h2>
+            <div id="options-list" class="grid"></div>
+        </section>
+
+        <section>
+            <h3>How it works</h3>
+            <p>This utility calls Vimeo's player configuration endpoint to discover progressive download URLs. If you provide a password, it is passed directly to Vimeo to unlock the video before fetching download links.</p>
+            <p class="contrast">Download responsibly: ensure you have rights to the media you're accessing.</p>
+        </section>
+    </main>
+
+    <script>
+        const form = document.getElementById('download-form');
+        const optionsSection = document.getElementById('options');
+        const optionsList = document.getElementById('options-list');
+        const checkButton = document.getElementById('check-options');
+
+        function buildRequest() {
+            return {
+                url: document.getElementById('url').value.trim(),
+                password: document.getElementById('password').value.trim() || null,
+                preferredFormat: document.getElementById('preferredFormat').value,
+                preferredResolution: document.getElementById('preferredResolution').value.trim() || null
+            };
+        }
+
+        async function fetchOptions() {
+            const payload = buildRequest();
+            const response = await fetch('/api/download-options', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.error || 'Unable to fetch download options');
+                return;
+            }
+
+            const options = await response.json();
+            optionsList.innerHTML = '';
+            options.forEach(opt => {
+                const card = document.createElement('article');
+                card.className = 'download-card';
+                card.innerHTML = `
+                    <strong>${opt.quality}</strong><br/>
+                    ${opt.mimeType || 'Unknown type'}<br/>
+                    Width: ${opt.width || 'n/a'}
+                `;
+                optionsList.appendChild(card);
+            });
+            optionsSection.hidden = options.length === 0;
+        }
+
+        checkButton.addEventListener('click', async () => {
+            await fetchOptions();
+        });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = buildRequest();
+
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.error || 'Unable to start download');
+                return;
+            }
+
+            const blob = await response.blob();
+            const disposition = response.headers.get('Content-Disposition');
+            const fallbackName = 'vimeo-video.mp4';
+            let filename = fallbackName;
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '').trim();
+            }
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
