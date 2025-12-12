@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extract Image Paths from HTML, Markdown, and TXT</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1224;
+      --card: #0f172a;
+      --border: #1f2937;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --text: #e2e8f0;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 25%),
+        radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.1), transparent 22%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto 28px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: -0.02em;
+    }
+
+    p.lede {
+      color: var(--muted);
+      margin: 10px 0 0;
+      font-size: 17px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      border: none;
+      border-radius: 12px;
+      color: #0b1224;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .button.secondary {
+      background: rgba(148, 163, 184, 0.14);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button input {
+      display: none;
+    }
+
+    .dropzone {
+      border: 1.5px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(148, 163, 184, 0.06);
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .path {
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="badge">🔍 Asset audit helper</p>
+    <h1>Extract image paths from HTML, Markdown, and text files.</h1>
+    <p class="lede">Drag in your docs and get a clean list of every image reference—complete with source file, syntax type, and line number.</p>
+  </header>
+
+  <main>
+    <section class="card stack">
+      <div class="controls">
+        <div class="actions">
+          <label class="button" for="fileInput">
+            <input id="fileInput" type="file" accept=".html,.htm,.md,.markdown,.txt" multiple />
+            <span>Choose files</span>
+          </label>
+          <button class="button secondary" id="clearButton" type="button">Clear results</button>
+        </div>
+        <div class="pill">Supports .html, .md, and .txt uploads</div>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <strong>Drop files here</strong>
+        <div class="muted">We scan HTML <code>&lt;img src="…"&gt;</code>, Markdown images, and plain text paths (png, jpg, svg, webp, gif, bmp, tiff, ico, avif).</div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <div class="controls">
+        <div>
+          <h3 style="margin: 0">Results</h3>
+          <p class="muted" id="summary" style="margin: 4px 0 0;">No files processed yet.</p>
+        </div>
+        <div class="actions">
+          <button class="button secondary" id="copyButton" type="button" disabled>Copy CSV</button>
+        </div>
+      </div>
+      <div id="resultsContainer">
+        <p class="muted">Upload or drop files to see extracted image paths.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const summary = document.getElementById('summary');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const copyButton = document.getElementById('copyButton');
+    const clearButton = document.getElementById('clearButton');
+
+    let results = [];
+    let seenKeys = new Set();
+
+    const htmlImgRegex = /<img[^>]*?\s+src\s*=\s*["']([^"']+)["'][^>]*?>/gi;
+    const markdownRegex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
+    const textPathRegex = /(?:^|[\s"'`(])((?:\.{1,2}\/|\/)?(?:[\w.-]+\/)+[\w.-]+\.(?:png|jpe?g|gif|svg|webp|bmp|tiff|ico|avif))/gi;
+
+    function formatResultsTable(rows) {
+      if (!rows.length) {
+        resultsContainer.innerHTML = '<p class="muted">Upload or drop files to see extracted image paths.</p>';
+        copyButton.disabled = true;
+        return;
+      }
+
+      const tableRows = rows
+        .map(r => `
+          <tr>
+            <td class="path">${escapeHtml(r.path)}</td>
+            <td>${escapeHtml(r.source)}</td>
+            <td>${escapeHtml(r.kind)}</td>
+            <td>${r.line}</td>
+          </tr>
+        `)
+        .join('');
+
+      resultsContainer.innerHTML = `
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Image path</th>
+                <th>Source file</th>
+                <th>Found as</th>
+                <th>Line</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`;
+
+      copyButton.disabled = false;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char] || char));
+    }
+
+    function updateSummary(fileCount) {
+      if (!results.length) {
+        summary.textContent = 'No files processed yet.';
+        return;
+      }
+      summary.textContent = `${results.length} image reference${results.length === 1 ? '' : 's'} found across ${fileCount} file${fileCount === 1 ? '' : 's'}.`;
+    }
+
+    async function handleFiles(fileList) {
+      const files = Array.from(fileList).filter(file => /\.(html?|md|markdown|txt)$/i.test(file.name));
+      if (!files.length) return;
+
+      results = [];
+      seenKeys = new Set();
+
+      for (const file of files) {
+        const content = await readFileAsText(file);
+        parseContent(content, file.name);
+      }
+
+      results.sort((a, b) => a.source.localeCompare(b.source) || a.line - b.line || a.path.localeCompare(b.path));
+      formatResultsTable(results);
+      updateSummary(files.length);
+    }
+
+    function parseContent(content, source) {
+      const lines = content.split(/\r?\n/);
+
+      lines.forEach((line, index) => {
+        const lineNumber = index + 1;
+
+        for (const match of line.matchAll(htmlImgRegex)) {
+          addResult(match[1], 'HTML <img>', source, lineNumber);
+        }
+
+        for (const match of line.matchAll(markdownRegex)) {
+          addResult(match[1], 'Markdown image', source, lineNumber);
+        }
+
+        for (const match of line.matchAll(textPathRegex)) {
+          addResult(match[1], 'Plain text path', source, lineNumber);
+        }
+      });
+    }
+
+    function addResult(path, kind, source, line) {
+      const cleaned = path.trim();
+      const key = `${source}::${cleaned}::${line}::${kind}`;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+      results.push({ path: cleaned, kind, source, line });
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.toString());
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    dropzone.addEventListener('dragover', event => {
+      event.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', event => {
+      event.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFiles(event.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', event => handleFiles(event.target.files));
+
+    copyButton.addEventListener('click', () => {
+      if (!results.length) return;
+      const header = 'image_path,source_file,found_as,line';
+      const csv = results
+        .map(r => [r.path, r.source, r.kind, r.line]
+          .map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      navigator.clipboard.writeText(`${header}\n${csv}`);
+      copyButton.textContent = 'Copied!';
+      setTimeout(() => (copyButton.textContent = 'Copy CSV'), 1400);
+    });
+
+    clearButton.addEventListener('click', () => {
+      results = [];
+      seenKeys = new Set();
+      fileInput.value = '';
+      formatResultsTable(results);
+      summary.textContent = 'No files processed yet.';
+      copyButton.textContent = 'Copy CSV';
+    });
+  </script>
+</body>
+</html>
