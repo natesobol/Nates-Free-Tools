@@ -46,4 +46,13 @@ router.get('/html-tag-cleaner', (req, res) => {
   });
 });
 
+router.get('/tabify-untabify', (req, res) => {
+  res.render('tabify-untabify', {
+    title: 'Tabify or Untabify',
+    metaDescription:
+      'Convert tabs to spaces or spaces to tabs with configurable spacing, trailing whitespace cleanup, and a preview for quick QA.',
+    metaKeywords: 'tabs to spaces,spaces to tabs,indentation converter'
+  });
+});
+
 export default router;

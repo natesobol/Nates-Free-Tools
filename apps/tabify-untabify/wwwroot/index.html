@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tabify or Untabify</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1.5.10/css/pico.min.css" />
+  <style>
+    body { background: linear-gradient(135deg, #0f172a, #111827); color: #e5e7eb; }
+    main { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 1.5rem; box-shadow: 0 18px 50px rgba(0,0,0,0.35); }
+    textarea { background: #0b1224; color: #e5e7eb; border-color: #1f2937; min-height: 200px; }
+    .muted { color: #9ca3af; }
+    .pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.8rem; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .stat { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.08); }
+    pre { background: #0b1224; border-radius: 10px; padding: 0.75rem; border: 1px solid #1f2937; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; }
+    .error { background: rgba(239,68,68,0.15); color: #fecdd3; border: 1px solid rgba(239,68,68,0.4); padding: 0.75rem; border-radius: 10px; }
+    .success { color: #bbf7d0; }
+  </style>
+</head>
+<body>
+  <main>
+    <header style="text-align: center; margin-bottom: 1.5rem;">
+      <p class="pill">Text-only C# utility • Tabify or untabify</p>
+      <h1>Convert tabs ↔ spaces with preview</h1>
+      <p class="muted">Paste any code or plaintext, choose your direction, and preview the converted text before copying it back into your editor.</p>
+    </header>
+
+    <section class="card">
+      <form id="convert-form">
+        <label for="text">Paste text (tabs and spaces supported)</label>
+        <textarea id="text" name="text" placeholder="\tIndented line\n    Four leading spaces"></textarea>
+
+        <div class="grid" style="margin-top: 1rem;">
+          <div>
+            <fieldset>
+              <legend>Direction</legend>
+              <label><input type="radio" name="mode" value="tabs-to-spaces" checked /> Tabs → Spaces</label>
+              <label><input type="radio" name="mode" value="spaces-to-tabs" /> Spaces → Tabs</label>
+            </fieldset>
+            <label for="spacesPerTab">Spaces per tab</label>
+            <input type="number" id="spacesPerTab" name="spacesPerTab" value="4" min="1" max="8" />
+            <small class="muted">Clamped between 1 and 8 to match typical coding styles.</small>
+          </div>
+          <div>
+            <label><input type="checkbox" id="trimTrailingWhitespace" name="trimTrailingWhitespace" checked /> Trim trailing whitespace before converting</label>
+            <p class="muted">Useful for cleaning up copy/pasted snippets without touching content.</p>
+            <button type="submit" style="margin-top: 0.5rem;">Convert</button>
+            <div id="error" class="error" style="display:none; margin-top:0.5rem;"></div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top: 1.25rem;">
+      <div id="results" style="display:none;">
+        <p class="success" id="summary"></p>
+        <div class="grid" style="margin-top: 0.75rem;">
+          <div class="stat">
+            <strong>Converted output</strong>
+            <pre id="output"></pre>
+          </div>
+          <div class="stat">
+            <strong>Preview (first 5 lines)</strong>
+            <pre id="preview"></pre>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;" id="metrics"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('convert-form');
+    const errorBox = document.getElementById('error');
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    const output = document.getElementById('output');
+    const preview = document.getElementById('preview');
+    const metrics = document.getElementById('metrics');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      results.style.display = 'none';
+      metrics.innerHTML = '';
+
+      const data = {
+        text: document.getElementById('text').value,
+        mode: form.elements['mode'].value,
+        spacesPerTab: Number(document.getElementById('spacesPerTab').value) || 4,
+        trimTrailingWhitespace: document.getElementById('trimTrailingWhitespace').checked
+      };
+
+      try {
+        const response = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Conversion failed.');
+        }
+
+        summary.textContent = payload.mode === 'TabsToSpaces'
+          ? `Tabs → spaces using ${payload.stats.spacesPerTab} per tab`
+          : `Spaces → tabs using ${payload.stats.spacesPerTab} per tab`;
+
+        output.textContent = payload.converted;
+        preview.textContent = payload.preview || 'No preview available';
+
+        const badges = [
+          `${payload.stats.inputLength} → ${payload.stats.outputLength} characters`,
+          `${payload.stats.tabsFound} tabs detected`,
+          `${payload.stats.spaceRunsConverted} space runs converted`
+        ];
+
+        badges.forEach(text => {
+          const pill = document.createElement('span');
+          pill.className = 'pill';
+          pill.textContent = text;
+          metrics.appendChild(pill);
+        });
+
+        results.style.display = 'block';
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
