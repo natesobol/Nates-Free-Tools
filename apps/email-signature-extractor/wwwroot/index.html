@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script id="asset-base-loader">
+    (function() {
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      const repoIndex = segments.indexOf('Nates-Free-Tools');
+      const baseHref = repoIndex !== -1 ? '/' + segments.slice(0, repoIndex + 1).join('/') + '/' : '/';
+      let baseTag = document.querySelector('base');
+      if (!baseTag) {
+        baseTag = document.createElement('base');
+        document.head.prepend(baseTag);
+      }
+      baseTag.href = baseHref;
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/webapps-unified.css" />
+  <title>Email Signature Extractor</title>
+  <script src="js/site-chrome.js" defer></script>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">Sales & CRM automation</p>
+      <h1>Email Signature Extractor</h1>
+      <p>Upload .eml, .msg, .mbox, or .txt email files to automatically detect signature blocks and collect contact info.</p>
+      <p class="hint">Great for enriching CRM records, prospecting, or syncing team inbox contacts.</p>
+    </header>
+
+    <section class="card">
+      <form id="extract-form">
+        <label for="emailFiles">Upload email files</label>
+        <input id="emailFiles" name="files" type="file" multiple accept=".eml,.msg,.mbox,.txt" required />
+        <p class="hint small">Processing happens in your browser. Large or binary-only MSG files may not expose text content.</p>
+
+        <div class="grid">
+          <div>
+            <label for="threadLimit" class="checkbox">
+              <input type="checkbox" id="threadLimit" />
+              <span>Keep only one signature per thread (by Subject/From)</span>
+            </label>
+          </div>
+          <div>
+            <label for="skipQuoted" class="checkbox">
+              <input type="checkbox" id="skipQuoted" checked />
+              <span>Skip quoted replies and forwards</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="primary">Extract signatures</button>
+      </form>
+    </section>
+
+    <section class="card" id="results" hidden>
+      <div class="grid">
+        <div>
+          <h2>Extracted signatures</h2>
+          <p id="summary" class="hint"></p>
+        </div>
+        <div class="actions" style="text-align: right;">
+          <button id="downloadCsv" class="secondary" disabled>Export CSV</button>
+        </div>
+      </div>
+      <div id="errors" class="alert" hidden></div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Company</th>
+              <th>Thread</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('extract-form');
+    const resultsSection = document.getElementById('results');
+    const resultsBody = document.getElementById('results-body');
+    const summary = document.getElementById('summary');
+    const errorBox = document.getElementById('errors');
+    const downloadCsvButton = document.getElementById('downloadCsv');
+    const threadLimitCheckbox = document.getElementById('threadLimit');
+    const skipQuotedCheckbox = document.getElementById('skipQuoted');
+
+    const signOffPatterns = [
+      /best regards/i,
+      /kind regards/i,
+      /regards/i,
+      /sincerely/i,
+      /cheers/i,
+      /thanks/i,
+      /thank you/i,
+      /respectfully/i,
+      /sent from my/i
+    ];
+
+    const phoneRegex = /(\+?\d{1,3}[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}/;
+    const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+    const companyRegex = /(inc\.?|llc|ltd\.?|co\.?|corp\.?|group|studio|solutions|systems|technologies|technology|company)/i;
+    const titleRegex = /(manager|director|founder|officer|chief|lead|head|vp|president|consultant|engineer|specialist)/i;
+
+    let extracted = [];
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const files = document.getElementById('emailFiles').files;
+
+      if (!files.length) {
+        return;
+      }
+
+      summary.textContent = 'Working…';
+      resultsBody.innerHTML = '';
+      errorBox.hidden = true;
+      resultsSection.hidden = false;
+      downloadCsvButton.disabled = true;
+      extracted = [];
+
+      const errors = [];
+      const seenThreads = new Map();
+
+      for (const file of files) {
+        try {
+          const text = await file.text();
+          const messages = splitMessages(text);
+
+          for (const message of messages) {
+            const threadKey = getThreadKey(message, file.name);
+            if (threadLimitCheckbox.checked && seenThreads.has(threadKey)) {
+              continue;
+            }
+
+            const signature = extractSignature(message, skipQuotedCheckbox.checked);
+            if (signature) {
+              signature.file = file.name;
+              signature.thread = threadKey;
+              extracted.push(signature);
+              seenThreads.set(threadKey, true);
+            }
+          }
+        } catch (err) {
+          errors.push(`${file.name}: ${err.message || err}`);
+        }
+      }
+
+      renderResults(errors);
+    });
+
+    downloadCsvButton.addEventListener('click', () => {
+      if (!extracted.length) return;
+      const header = ['Name', 'Email', 'Phone', 'Company'];
+      const lines = [header.join(',')];
+      for (const row of extracted) {
+        lines.push([
+          csvSafe(row.name || ''),
+          csvSafe(row.email || ''),
+          csvSafe(row.phone || ''),
+          csvSafe(row.company || '')
+        ].join(','));
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'email-signatures.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function renderResults(errors) {
+      resultsBody.innerHTML = '';
+      if (errors.length) {
+        errorBox.hidden = false;
+        errorBox.textContent = errors.join('\n');
+      } else {
+        errorBox.hidden = true;
+      }
+
+      for (const row of extracted) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.file || ''}</td>
+          <td>${row.name || ''}</td>
+          <td>${row.email || ''}</td>
+          <td>${row.phone || ''}</td>
+          <td>${row.company || ''}</td>
+          <td>${row.thread || ''}</td>
+        `;
+        resultsBody.appendChild(tr);
+      }
+
+      summary.textContent = extracted.length
+        ? `${extracted.length} signature${extracted.length === 1 ? '' : 's'} captured`
+        : 'No signatures found';
+      downloadCsvButton.disabled = extracted.length === 0;
+    }
+
+    function splitMessages(rawText) {
+      const normalized = rawText.replace(/\r\n/g, '\n');
+      if (normalized.includes('\nFrom ')) {
+        return normalized.split(/\n(?=From .+\n)/g).filter(Boolean);
+      }
+      if (/^-+Original Message-+/im.test(normalized)) {
+        return normalized.split(/^-+Original Message-+/gim).filter(Boolean);
+      }
+      return [normalized];
+    }
+
+    function getThreadKey(message, fileName) {
+      const subjectMatch = message.match(/^Subject:\s*(.+)$/im);
+      const fromMatch = message.match(/^From:\s*(.+)$/im);
+      const subject = subjectMatch ? subjectMatch[1].trim() : '';
+      const from = fromMatch ? fromMatch[1].trim() : '';
+      return (subject || from || fileName).replace(/[\n\r]/g, '').slice(0, 120);
+    }
+
+    function extractSignature(message, skipQuoted) {
+      const normalized = message.replace(/\r\n/g, '\n');
+      const lines = normalized.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .filter(line => !(skipQuoted && line.startsWith('>')));
+
+      if (!lines.length) return null;
+
+      const tail = lines.slice(Math.max(0, lines.length - 15));
+      const signIndex = tail.findIndex(line => signOffPatterns.some(rx => rx.test(line)));
+      const signatureLines = (signIndex !== -1 ? tail.slice(signIndex) : tail).slice(0, 12);
+
+      const email = findMatch(signatureLines, emailRegex);
+      const phone = findMatch(signatureLines, phoneRegex);
+      const name = findName(signatureLines);
+      const company = findCompany(signatureLines, name);
+
+      if (!email && !phone && !name && !company) {
+        return null;
+      }
+
+      return { name, email, phone, company };
+    }
+
+    function findMatch(lines, regex) {
+      for (const line of lines) {
+        const match = line.match(regex);
+        if (match) return match[0];
+      }
+      return '';
+    }
+
+    function findName(lines) {
+      for (const line of lines) {
+        if (emailRegex.test(line) || phoneRegex.test(line)) continue;
+        if (line.length > 60 || /https?:\/\//i.test(line)) continue;
+        if (/^[-\w\s]+:/.test(line)) continue;
+        const words = line.split(/\s+/);
+        const hasTwoWords = words.length >= 2;
+        const lettersOnly = words.every(w => /[A-Za-z]/.test(w));
+        if (hasTwoWords && lettersOnly) {
+          return line;
+        }
+      }
+      return '';
+    }
+
+    function findCompany(lines, name) {
+      for (const line of lines) {
+        if (emailRegex.test(line) || phoneRegex.test(line)) continue;
+        if (line === name) continue;
+        if (companyRegex.test(line)) return line;
+        if (titleRegex.test(line) && line.includes('|')) {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length > 1) return parts[parts.length - 1];
+        }
+        if (/ at /.test(line)) {
+          return line.split(/ at /i)[1];
+        }
+      }
+      return '';
+    }
+
+    function csvSafe(value) {
+      const needsQuotes = /[",\n]/.test(value);
+      let output = value.replace(/"/g, '""');
+      if (needsQuotes) {
+        output = '"' + output + '"';
+      }
+      return output;
+    }
+  </script>
+</body>
+</html>

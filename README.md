@@ -16,6 +16,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - PDF Splitter: `/apps/pdf-splitter/wwwroot/index.html`
 - Table Data Extractor: `/apps/table-data-extractor/wwwroot/index.html`
 - Bullet List Extractor: `/apps/bullet-list-extractor/wwwroot/index.html`
+- HTML Metadata Extractor: `/apps/html-metadata-extractor/wwwroot/index.html`
 - PowerPoint → PDF: `/apps/powerpoint-to-pdf/wwwroot/index.html`
 - PowerPoint Image Extractor: `/apps/powerpoint-image-extractor/wwwroot/index.html`
 - JSON to Excel Creator: `/apps/json-to-excel/wwwroot/index.html`
@@ -23,12 +24,14 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - Phone Number Extractor: `/apps/phone-number-extractor/wwwroot/index.html`
 - Product SKU Extractor: `/apps/product-sku-extractor/wwwroot/index.html`
 - PDF Link Extractor: `/apps/pdf-link-extractor/wwwroot/index.html`
+- Hyperlinked Text Extractor: `/apps/hyperlink-text-extractor/wwwroot/index.html`
 - Resume Contact Info Extractor: `/apps/resume-contact-extractor/wwwroot/index.html`
 - Color Extractor: `/apps/color-extractor/wwwroot/index.html`
 - Image Path Extractor: `/apps/image-path-extractor/wwwroot/index.html`
 - File Path Extractor: `/apps/file-path-extractor/wwwroot/index.html`
 - Capitalized Phrase Extractor: `/apps/capitalized-phrase-extractor/wwwroot/index.html`
 - Sentence Keyword Extractor: `/apps/sentence-keyword-extractor/wwwroot/index.html`
+- IP & Port Extractor: `/apps/ip-port-extractor/wwwroot/index.html`
 - Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
@@ -158,6 +161,22 @@ Located in `apps/resume-contact-extractor/`, this ASP.NET Core static webapp pul
 **Run locally:**
 ```bash
 cd apps/resume-contact-extractor
+dotnet run
+```
+
+### IP & Port Extractor
+Located in `apps/ip-port-extractor/`, this C# minimal API parses logs and configs for IPv4/IPv6 addresses with optional port numbers.
+
+**Features:**
+- Accepts `.txt`, `.log`, `.conf`, `.json`, and `.xml` uploads
+- Detects addresses like `192.168.1.1:443` or `[2001:db8::1]:8443`
+- Marks each match as public or private/reserved and supports filtering
+- Captures line numbers plus the first timestamp on a line when present
+- Exports matches to CSV from the browser UI
+
+**Run locally:**
+```bash
+cd apps/ip-port-extractor
 dotnet run
 ```
 
@@ -418,6 +437,10 @@ apps/
 │   ├── Program.cs          # Minimal API and path detector
 │   ├── file-path-extractor.csproj
 │   └── wwwroot/            # Static UI assets
+├── date-line-extractor/    # C# date/datetime line extractor
+│   ├── Program.cs          # Minimal API reading PDFs, DOCX, TXT, CSV, and logs
+│   ├── date-line-extractor.csproj
+│   └── wwwroot/            # Static UI assets
 └── json-to-excel/          # C# JSON → Excel creator
     ├── wwwroot/            # Static UI assets
     ├── Program.cs          # Minimal API and converter
@@ -429,10 +452,25 @@ apps/
 - Supabase for user data with SQLite session storage
 - EJS for server-rendered views
 - Helmet and secure session defaults for baseline security
-- C# .NET (JSON Combiner, JSON to Excel, PDF Splitter, PDF Link Extractor, Bullet List Extractor, List Comparison, Find & Replace, Batch File Renamer, and PowerPoint Image Extractor webapps)
+- C# .NET (JSON Combiner, JSON to Excel, PDF Splitter, PDF Link Extractor, Bullet List Extractor, List Comparison, Find & Replace, Batch File Renamer, PowerPoint Image Extractor, and Date Line Extractor webapps)
 
 ## Notes
 - User passwords are managed by Supabase Auth
 - Profile updates persist to Supabase and refresh the session payload
 - Replace placeholder links in the footer and pricing sections with production resources when ready
 - Old `/excel-to-json.html` in root redirects to new location for backwards compatibility
+
+### Delimited Text Extractor
+Located in `apps/delimited-text-extractor/`, this .NET 8 minimal API extracts text enclosed in parentheses, brackets, braces, or quotes from uploaded files.
+
+**Features:**
+- Accepts `.txt`, `.docx`, `.pdf`, and `.csv`
+- Returns grouped matches for parentheses, brackets, braces, double quotes, and single quotes
+- Browser UI for drag-and-drop uploads with per-file summaries
+
+**Run locally:**
+```bash
+cd apps/delimited-text-extractor
+dotnet run
+```
+
