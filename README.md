@@ -342,6 +342,21 @@ Located in `apps/named-entity-extractor/`, this C# minimal API hosts a browser-b
 
 **Static Version:** `/apps/named-entity-extractor/wwwroot/index.html`
 
+### Timestamp Extractor
+Located in `apps/timestamp-extractor/`, this ASP.NET Core webapp extracts timestamps from transcripts, subtitle files, logs, and chat exports.
+
+**Features:**
+- Upload `.srt`, `.vtt`, `.txt`, `.csv`, and `.json` files
+- Detects subtitle-style ranges plus standalone time-of-day stamps (e.g., `00:12:30` or `12:30 PM`)
+- Computes durations for start/end ranges and shows the context line
+- Optional filters for minimum duration or how frequently a timestamp appears across files
+
+**Run locally:**
+```bash
+cd apps/timestamp-extractor
+dotnet run
+```
+
 ## Project Structure
 
 ```
