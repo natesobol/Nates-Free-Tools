@@ -26,6 +26,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - PDF Link Extractor: `/apps/pdf-link-extractor/wwwroot/index.html`
 - Hyperlinked Text Extractor: `/apps/hyperlink-text-extractor/wwwroot/index.html`
 - Resume Contact Info Extractor: `/apps/resume-contact-extractor/wwwroot/index.html`
+- List Structure Extractor: `/apps/list-structure-extractor/wwwroot/index.html`
 - Color Extractor: `/apps/color-extractor/wwwroot/index.html`
 - Image Path Extractor: `/apps/image-path-extractor/wwwroot/index.html`
 - File Path Extractor: `/apps/file-path-extractor/wwwroot/index.html`
