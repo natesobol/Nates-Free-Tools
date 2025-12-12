@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Extractor</title>
+  <link rel="stylesheet" href="../../../public/css/webapp-theme.css" />
+</head>
+<body>
+  <main>
+    <header class="app-header">
+      <p class="pill">Design QA • Palette extraction</p>
+      <h1>Extract every color from CSS, HTML, SVG, and Figma JSON exports.</h1>
+      <p class="muted">Upload UI assets or paste inline markup to instantly surface hex codes, rgb() values, and named colors with usage counts and a palette preview.</p>
+    </header>
+
+    <section class="card">
+      <form id="extract-form">
+        <label for="text">Optional inline markup</label>
+        <textarea id="text" name="text" rows="4" placeholder="body { background: #0d1117; color: rgb(201, 209, 217); }"></textarea>
+
+        <label for="files" style="margin-top: 1rem;">Upload design files (.css, .html, .svg, .json)</label>
+        <input type="file" id="files" name="files" accept=".css,.html,.svg,.json" multiple />
+        <small class="muted">Parsing stays local; files are only read in-memory.</small>
+
+        <div class="grid" style="margin-top: 1rem; align-items: end;">
+          <div>
+            <p class="muted">Find hex, rgb/rgba, and CSS named colors in one pass.</p>
+          </div>
+          <div>
+            <button type="submit">Extract colors</button>
+            <div id="error" class="error" style="display:none; margin-top:0.5rem;"></div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top: 1.25rem;">
+      <div id="summary" class="success" style="display:none;"></div>
+      <div id="palette" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 1rem; display:none;"></div>
+      <div id="sources" class="grid" style="gap: 1rem; margin-top: 1rem;"></div>
+      <div id="empty" class="muted">Upload files or paste markup to see detected colors and palette stats.</div>
+    </section>
+  </main>
+
+  <template id="source-template">
+    <div class="stat">
+      <div class="pill-bar" style="margin-bottom: 0.5rem;"></div>
+      <strong class="source"></strong>
+      <p class="muted kind"></p>
+      <ul class="chip-list"></ul>
+      <div class="error" style="display:none;"></div>
+    </div>
+  </template>
+
+  <template id="swatch-template">
+    <div class="swatch" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div class="swatch-color" style="height: 60px;"></div>
+      <div class="swatch-meta" style="padding: 0.5rem;">
+        <div class="pill-bar" style="margin-bottom: 0.25rem;"></div>
+        <strong class="color-value"></strong>
+      </div>
+    </div>
+  </template>
+
+  <style>
+    .chip-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.25rem 0 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.35rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 0.95rem;
+    }
+
+    .chip .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .pill-bar { gap: 0.5rem; }
+  </style>
+
+  <script>
+    const form = document.getElementById('extract-form');
+    const errorBox = document.getElementById('error');
+    const summary = document.getElementById('summary');
+    const palette = document.getElementById('palette');
+    const sources = document.getElementById('sources');
+    const emptyState = document.getElementById('empty');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      summary.style.display = 'none';
+      palette.style.display = 'none';
+      palette.innerHTML = '';
+      sources.innerHTML = '';
+      emptyState.style.display = 'none';
+
+      const data = new FormData();
+      const files = document.getElementById('files').files;
+      for (const file of files) {
+        data.append('files', file);
+      }
+      data.set('text', document.getElementById('text').value);
+
+      try {
+        const response = await fetch('/api/extract-colors', { method: 'POST', body: data });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Extraction failed.');
+        }
+
+        summary.textContent = `Found ${payload.totalColors} color mentions across ${payload.sources.length} inputs with ${payload.uniqueColors} unique colors.`;
+        summary.style.display = 'block';
+
+        renderPalette(payload.palette);
+        renderSources(payload.sources);
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.style.display = 'block';
+        emptyState.style.display = 'block';
+      }
+    });
+
+    function renderPalette(colors) {
+      if (!colors || !colors.length) {
+        palette.style.display = 'none';
+        return;
+      }
+
+      colors.forEach((entry) => {
+        const node = document.getElementById('swatch-template').content.cloneNode(true);
+        node.querySelector('.swatch-color').style.background = entry.color;
+        node.querySelector('.color-value').textContent = entry.color;
+        const pillBar = node.querySelector('.pill-bar');
+        pillBar.appendChild(createPill(`${entry.occurrences} uses`));
+        palette.appendChild(node);
+      });
+
+      palette.style.display = 'grid';
+    }
+
+    function renderSources(items) {
+      if (!items || !items.length) {
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      items.forEach((item) => {
+        const node = document.getElementById('source-template').content.cloneNode(true);
+        node.querySelector('.source').textContent = item.source;
+        node.querySelector('.kind').textContent = item.kind.toUpperCase();
+
+        const pillBar = node.querySelector('.pill-bar');
+        pillBar.appendChild(createPill(`${item.count} matches`));
+        pillBar.appendChild(createPill(`${item.uniqueColors} unique`));
+
+        if (item.error) {
+          const errorEl = node.querySelector('.error');
+          errorEl.textContent = item.error;
+          errorEl.style.display = 'block';
+        } else if (item.colors && item.colors.length) {
+          const chipList = node.querySelector('.chip-list');
+          item.colors.slice(0, 24).forEach((color) => {
+            const chip = document.createElement('li');
+            chip.classList.add('chip');
+            const dot = document.createElement('span');
+            dot.classList.add('dot');
+            dot.style.background = color.color;
+            chip.appendChild(dot);
+            chip.appendChild(document.createTextNode(`${color.color} • ${color.occurrences}`));
+            chipList.appendChild(chip);
+          });
+        }
+
+        sources.appendChild(node);
+      });
+    }
+
+    function createPill(text) {
+      const pill = document.createElement('span');
+      pill.classList.add('pill');
+      pill.textContent = text;
+      return pill;
+    }
+  </script>
+</body>
+</html>
