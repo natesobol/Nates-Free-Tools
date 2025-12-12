@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timestamp Extractor | Pull markers from transcripts and logs</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1224;
+      --card: #0f172a;
+      --muted: #94a3b8;
+      --border: #1f2937;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --text: #e2e8f0;
+      --shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08), transparent 32%),
+        radial-gradient(circle at 75% 10%, rgba(14, 165, 233, 0.12), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 14px 64px;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 40px);
+      letter-spacing: -0.02em;
+    }
+
+    .lede {
+      color: var(--muted);
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.6;
+      max-width: 840px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .layout { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    label { font-weight: 600; display: block; margin-bottom: 6px; }
+
+    input[type="file"] { display: none; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #0b1224;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .button.secondary {
+      background: rgba(148, 163, 184, 0.14);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .button:active { transform: translateY(1px); }
+    .button:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .dropzone {
+      border: 1.5px dashed rgba(148, 163, 184, 0.35);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(148, 163, 184, 0.06);
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+      font-size: 13px;
+      width: fit-content;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .muted { color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    td { vertical-align: top; }
+
+    .mono { font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
+    .status { min-height: 22px; font-weight: 600; }
+    .status.error { color: #fca5a5; }
+    .status.success { color: #34d399; }
+
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .stack { display: grid; gap: 12px; }
+    .input-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+    input[type="number"] {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.55);
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    @media (max-width: 640px) {
+      header { text-align: center; }
+      .controls { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="badge">Subtitle + log friendly • Browser UI</p>
+    <h1>Extract timestamps from transcripts, logs, and chat exports.</h1>
+    <p class="lede">Drop .srt, .vtt, .txt, .csv, or .json files. We pull every timecode or AM/PM stamp, compute subtitle durations, and let you filter by duration or how often a timestamp appears.</p>
+  </header>
+
+  <main class="layout">
+    <section class="card stack">
+      <div class="stack">
+        <div class="controls">
+          <div>
+            <strong>Upload files</strong>
+            <p class="muted" id="file-count">No files selected</p>
+          </div>
+          <div class="stack" style="align-items: flex-end;">
+            <button class="button" id="choose-btn">Select files</button>
+            <input id="file-input" type="file" accept=".srt,.vtt,.txt,.csv,.json" multiple />
+          </div>
+        </div>
+        <div id="dropzone" class="dropzone">
+          Drag & drop transcripts or logs here (SRT, VTT, TXT, CSV, JSON)
+        </div>
+      </div>
+
+      <div class="input-row">
+        <div>
+          <label for="min-duration">Min duration (seconds)</label>
+          <input id="min-duration" type="number" min="0" step="0.1" value="0" />
+        </div>
+        <div>
+          <label for="min-frequency">Min frequency</label>
+          <input id="min-frequency" type="number" min="1" step="1" value="1" />
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="status" id="status"></div>
+        <div class="stack" style="align-items: flex-end;">
+          <button class="button" id="extract-btn">Extract timestamps</button>
+          <button class="button secondary" id="download-btn" disabled>Download JSON</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card stack">
+      <div class="controls">
+        <div>
+          <p class="pill">Matches <strong id="match-count">0</strong></p>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="results-table" aria-label="Timestamp matches">
+          <thead>
+            <tr>
+              <th>Timestamp / Range</th>
+              <th>Duration</th>
+              <th>Type</th>
+              <th>Frequency</th>
+              <th>File</th>
+              <th>Context</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="6" class="muted">No results yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const chooseBtn = document.getElementById('choose-btn');
+    const dropzone = document.getElementById('dropzone');
+    const statusEl = document.getElementById('status');
+    const matchCountEl = document.getElementById('match-count');
+    const minDurationEl = document.getElementById('min-duration');
+    const minFrequencyEl = document.getElementById('min-frequency');
+    const resultsTable = document.getElementById('results-table').querySelector('tbody');
+    const downloadBtn = document.getElementById('download-btn');
+    const fileCount = document.getElementById('file-count');
+
+    let lastResults = null;
+
+    chooseBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      updateFileCount(fileInput.files);
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer?.files?.length) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileCount(fileInput.files);
+      }
+    });
+
+    document.getElementById('extract-btn').addEventListener('click', async () => {
+      if (!fileInput.files.length) {
+        setStatus('Please select at least one file to scan.', true);
+        return;
+      }
+
+      const minDuration = parseFloat(minDurationEl.value || '0');
+      const minFrequency = parseInt(minFrequencyEl.value || '1', 10);
+
+      const formData = new FormData();
+      for (const file of fileInput.files) {
+        formData.append('files', file);
+      }
+      formData.append('minDurationSeconds', isNaN(minDuration) ? '0' : String(minDuration));
+      formData.append('minFrequency', isNaN(minFrequency) ? '1' : String(minFrequency));
+
+      setStatus('Extracting timestamps…');
+
+      try {
+        const response = await fetch('/api/extract', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Unexpected error');
+        }
+
+        lastResults = data;
+        renderResults(data.matches || []);
+        matchCountEl.textContent = data.count ?? 0;
+        setStatus(`Found ${data.count ?? 0} timestamps.`, false);
+        downloadBtn.disabled = !data.matches?.length;
+      } catch (err) {
+        setStatus(err.message || 'Failed to extract timestamps.', true);
+        renderResults([]);
+        downloadBtn.disabled = true;
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!lastResults?.matches?.length) return;
+      const blob = new Blob([JSON.stringify(lastResults, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'timestamps.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function renderResults(matches) {
+      resultsTable.innerHTML = '';
+
+      if (!matches.length) {
+        resultsTable.innerHTML = '<tr><td colspan="6" class="muted">No results yet.</td></tr>';
+        return;
+      }
+
+      for (const match of matches) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="mono">${escapeHtml(match.timestamp || match.start || '')}</td>
+          <td>${match.durationHuman || (match.durationSeconds ? match.durationSeconds.toFixed(2) + 's' : '–')}</td>
+          <td>${escapeHtml(match.type || '')}</td>
+          <td>${match.frequency ?? 1}</td>
+          <td>${escapeHtml(match.file || '')}</td>
+          <td class="muted">${escapeHtml(match.context || '')}</td>
+        `;
+        resultsTable.appendChild(row);
+      }
+    }
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle('error', isError);
+      statusEl.classList.toggle('success', !isError);
+    }
+
+    function updateFileCount(list) {
+      if (!list?.length) {
+        fileCount.textContent = 'No files selected';
+        return;
+      }
+      const names = Array.from(list).map(f => f.name).join(', ');
+      fileCount.textContent = `${list.length} file(s): ${names}`;
+    }
+
+    function escapeHtml(value) {
+      return value?.replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char])) ?? '';
+    }
+  </script>
+</body>
+</html>
