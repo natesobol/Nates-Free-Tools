@@ -82,4 +82,13 @@ router.get('/number-extractor', (req, res) => {
   });
 });
 
+router.get('/hashtag-mention-extractor', (req, res) => {
+  res.render('hashtag-mention-extractor', {
+    title: 'Extract Hashtags and @Mentions from Social Media Files',
+    metaDescription:
+      'Upload CSV, TXT, or JSON exports to find every hashtag and @mention with frequency counts and exportable lists.',
+    metaKeywords: 'hashtag extractor,mention finder,social media hashtags,csv hashtag counter,json mention extractor'
+  });
+});
+
 export default router;
