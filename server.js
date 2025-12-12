@@ -50,6 +50,7 @@ app.use(
   express.static(path.join(__dirname, 'apps/resume-contact-extractor/wwwroot'))
 );
 app.use('/number-extractor', express.static(path.join(__dirname, 'apps/number-extractor/wwwroot')));
+app.use('/image-path-extractor', express.static(path.join(__dirname, 'apps/image-path-extractor/wwwroot')));
 app.use(morgan('dev'));
 
 app.use(

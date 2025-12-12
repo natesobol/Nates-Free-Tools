@@ -246,46 +246,59 @@
     const clearButton = document.getElementById('clearButton');
 
     let results = [];
-    let seenKeys = new Set();
 
-    const htmlImgRegex = /<img[^>]*?\s+src\s*=\s*["']([^"']+)["'][^>]*?>/gi;
-    const markdownRegex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/gi;
-    const textPathRegex = /(?:^|[\s"'`(])((?:\.{1,2}\/|\/)?(?:[\w.-]+\/)+[\w.-]+\.(?:png|jpe?g|gif|svg|webp|bmp|tiff|ico|avif))/gi;
+    function formatResultsTable(rows, errors = []) {
+      const hasRows = rows.length > 0;
+      const hasErrors = errors.length > 0;
 
-    function formatResultsTable(rows) {
-      if (!rows.length) {
+      if (!hasRows && !hasErrors) {
         resultsContainer.innerHTML = '<p class="muted">Upload or drop files to see extracted image paths.</p>';
         copyButton.disabled = true;
         return;
       }
 
-      const tableRows = rows
-        .map(r => `
-          <tr>
-            <td class="path">${escapeHtml(r.path)}</td>
-            <td>${escapeHtml(r.source)}</td>
-            <td>${escapeHtml(r.kind)}</td>
-            <td>${r.line}</td>
-          </tr>
-        `)
-        .join('');
+      const errorList = hasErrors
+        ? `<div class="pill" style="background: rgba(248, 113, 113, 0.12); color: #fecdd3; border-color: rgba(248, 113, 113, 0.4);">${errors
+            .map(e => escapeHtml(e))
+            .join('<br />')}</div>`
+        : '';
+
+      const tableRows = hasRows
+        ? rows
+            .map(r => `
+              <tr>
+                <td class="path">${escapeHtml(r.path)}</td>
+                <td>${escapeHtml(r.source)}</td>
+                <td>${escapeHtml(r.kind)}</td>
+                <td>${r.line}</td>
+              </tr>
+            `)
+            .join('')
+        : '';
 
       resultsContainer.innerHTML = `
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Image path</th>
-                <th>Source file</th>
-                <th>Found as</th>
-                <th>Line</th>
-              </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-          </table>
+        <div class="stack">
+          ${errorList}
+          ${hasRows
+            ? `<div style="overflow-x: auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Image path</th>
+                      <th>Source file</th>
+                      <th>Found as</th>
+                      <th>Line</th>
+                    </tr>
+                  </thead>
+                  <tbody>${tableRows}</tbody>
+                </table>
+              </div>`
+            : !hasErrors
+              ? '<p class="muted">No image references were found in the uploaded files.</p>'
+              : ''}
         </div>`;
 
-      copyButton.disabled = false;
+      copyButton.disabled = !hasRows;
     }
 
     function escapeHtml(str) {
@@ -298,66 +311,69 @@
       }[char] || char));
     }
 
-    function updateSummary(fileCount) {
-      if (!results.length) {
+    function updateSummary(totalMatches, filesProcessed) {
+      if (!filesProcessed) {
         summary.textContent = 'No files processed yet.';
         return;
       }
-      summary.textContent = `${results.length} image reference${results.length === 1 ? '' : 's'} found across ${fileCount} file${fileCount === 1 ? '' : 's'}.`;
+
+      const matchesLabel = totalMatches === 1 ? 'reference' : 'references';
+      const filesLabel = filesProcessed === 1 ? 'file' : 'files';
+      summary.textContent = `${totalMatches} image ${matchesLabel} found across ${filesProcessed} ${filesLabel}.`;
     }
 
     async function handleFiles(fileList) {
       const files = Array.from(fileList).filter(file => /\.(html?|md|markdown|txt)$/i.test(file.name));
-      if (!files.length) return;
-
-      results = [];
-      seenKeys = new Set();
-
-      for (const file of files) {
-        const content = await readFileAsText(file);
-        parseContent(content, file.name);
+      if (!files.length) {
+        return;
       }
 
-      results.sort((a, b) => a.source.localeCompare(b.source) || a.line - b.line || a.path.localeCompare(b.path));
-      formatResultsTable(results);
-      updateSummary(files.length);
-    }
+      const formData = new FormData();
+      files.forEach(file => formData.append('files', file));
 
-    function parseContent(content, source) {
-      const lines = content.split(/\r?\n/);
+      summary.textContent = 'Scanning files...';
+      resultsContainer.innerHTML = '<p class="muted">Processing uploads...</p>';
+      copyButton.disabled = true;
 
-      lines.forEach((line, index) => {
-        const lineNumber = index + 1;
+      try {
+        const response = await fetch('/api/extract', {
+          method: 'POST',
+          body: formData
+        });
 
-        for (const match of line.matchAll(htmlImgRegex)) {
-          addResult(match[1], 'HTML <img>', source, lineNumber);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to process files.');
         }
 
-        for (const match of line.matchAll(markdownRegex)) {
-          addResult(match[1], 'Markdown image', source, lineNumber);
-        }
+        const errors = [];
+        results = [];
 
-        for (const match of line.matchAll(textPathRegex)) {
-          addResult(match[1], 'Plain text path', source, lineNumber);
-        }
-      });
-    }
+        (payload.results || []).forEach(file => {
+          if (file.error) {
+            errors.push(`${file.source}: ${file.error}`);
+            return;
+          }
 
-    function addResult(path, kind, source, line) {
-      const cleaned = path.trim();
-      const key = `${source}::${cleaned}::${line}::${kind}`;
-      if (seenKeys.has(key)) return;
-      seenKeys.add(key);
-      results.push({ path: cleaned, kind, source, line });
-    }
+          (file.matches || []).forEach(match => {
+            results.push({
+              path: match.path,
+              source: file.source,
+              kind: match.syntax,
+              line: match.line
+            });
+          });
+        });
 
-    function readFileAsText(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.toString());
-        reader.onerror = reject;
-        reader.readAsText(file);
-      });
+        results.sort((a, b) => a.source.localeCompare(b.source) || a.line - b.line || a.path.localeCompare(b.path));
+
+        updateSummary(payload.totalMatches || 0, payload.filesProcessed || files.length);
+        formatResultsTable(results, errors);
+      } catch (error) {
+        summary.textContent = 'Something went wrong.';
+        resultsContainer.innerHTML = `<p class="muted">${escapeHtml(error.message)}</p>`;
+      }
     }
 
     dropzone.addEventListener('dragover', event => {
@@ -391,7 +407,6 @@
 
     clearButton.addEventListener('click', () => {
       results = [];
-      seenKeys = new Set();
       fileInput.value = '';
       formatResultsTable(results);
       summary.textContent = 'No files processed yet.';
