@@ -8,6 +8,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - Static versions of webapps are available at:
   - Excel to JSON: `/apps/excel-to-json/index.html`
   - JSON Combiner: `/apps/json-combiner/wwwroot/index.html`
+  - CSV/XML Converter: `/apps/csv-xml-converter/index.html`
 - Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
@@ -16,6 +17,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - Account dashboard for updating profile, subscription plan, and marketing preferences
 - Admin-only dashboard for reviewing all accounts (seeded with `admin@example.com` / `admin` — change immediately)
 - Excel-to-JSON converter webapp with upload, preview, and JSON download
+- CSV/XML converter that handles both directions with previews
 - SQLite database for user data and session storage
 - EJS templating with responsive styling
 
@@ -77,6 +79,18 @@ cd apps/json-combiner
 dotnet run
 ```
 
+### CSV/XML Data Converter
+Located in `apps/csv-xml-converter/`, this tool converts CSV to XML and XML back to CSV.
+
+**Features:**
+- Paste data or upload CSV/XML files
+- CSV parsing with header detection and trimming
+- XML parsing that detects repeating row/record nodes and flattens nested data
+- In-memory processing for quick previews and downloads
+
+**Server Route:** `/csv-xml-converter`
+**Static Version:** `/apps/csv-xml-converter/index.html`
+
 ## Project Structure
 
 ```
@@ -86,6 +100,10 @@ apps/
 │   ├── views/              # EJS templates
 │   ├── index.html          # Static version
 │   └── README.md
+├── csv-xml-converter/      # CSV/XML converter webapp
+│   ├── src/routes/         # Express routes
+│   ├── views/              # EJS templates
+│   └── index.html          # Static version
 └── json-combiner/          # C# JSON combiner webapp
     ├── wwwroot/            # Static web files
     ├── Program.cs          # Main application
