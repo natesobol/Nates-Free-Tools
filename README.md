@@ -4,10 +4,11 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 
 ## Static preview
 - View the static landing page on GitHub Pages: https://natesobol.github.io/Nates-Free-Tools/
-- The preview uses `index.html` plus companion static pages (`about.html`, `excel-to-json.html`, `login.html`, `register.html`, `admin.html`) so navigation works on GitHub Pages.
-- Dynamic features (login, admin, Excel → JSON downloads) require running the Node.js server locally or on a host that supports server-side rendering.
-- The preview uses `index.html` alongside the assets in `public/` so you see the home experience instead of the repository README.
-- Dynamic features (login, admin, Excel → JSON) require running the Node.js server locally or on a host that supports server-side rendering.
+- The preview uses `index.html` plus companion static pages in the root and `/apps/` folders
+- Static versions of webapps are available at:
+  - Excel to JSON: `/apps/excel-to-json/index.html`
+  - JSON Combiner: `/apps/json-combiner/wwwroot/index.html`
+- Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
 - Home and About pages with modern UI and navigation menu
@@ -33,26 +34,61 @@ A starter website for hosting webapps with monetization in mind. It provides a h
    ```
 4. Visit `http://localhost:3000` to view the site.
 
-## Excel to JSON converter
-- Navigate to `/excel-to-json` from the top navigation or hero CTA.
-- Upload `.xls` or `.xlsx` files up to 5 MB for in-memory conversion.
-- Preview the JSON payload per worksheet and download a ready-to-use `.json` file.
+## Webapps
 
-## Tech stack
-- Node.js + Express
+### Excel to JSON Converter
+Located in `apps/excel-to-json/`, this webapp converts Excel spreadsheets to JSON format.
+
+**Features:**
+- Upload `.xls` or `.xlsx` files up to 5 MB
+- Preview JSON output with multi-sheet support
+- Download converted JSON files
+- Server-side processing via Express routes
+- Static HTML version for GitHub Pages
+
+**Server Route:** `/excel-to-json`  
+**Static Version:** `/apps/excel-to-json/index.html`
+
+### JSON Combiner
+Located in `apps/json-combiner/`, this C# .NET minimal API webapp combines multiple JSON files.
+
+**Features:**
+- Upload multiple JSON files
+- Arrays are concatenated
+- Objects are deep-merged
+- Mixed types are wrapped into a single array
+- Standalone web UI
+
+**Run locally:**
+```bash
+cd apps/json-combiner
+dotnet run
+```
+
+## Project Structure
+
+```
+apps/
+├── excel-to-json/          # Excel to JSON converter webapp
+│   ├── src/routes/         # Express routes
+│   ├── views/              # EJS templates
+│   ├── index.html          # Static version
+│   └── README.md
+└── json-combiner/          # C# JSON combiner webapp
+    ├── wwwroot/            # Static web files
+    ├── Program.cs          # Main application
+    └── README.md
+```
+
+## Tech Stack
+- Node.js + Express (main application)
 - SQLite for data and session storage
 - EJS for server-rendered views
 - Helmet and secure session defaults for baseline security
+- C# .NET (JSON Combiner webapp)
 
 ## Notes
-- User passwords are stored as bcrypt hashes.
-- Profile updates persist to the database and refresh the session payload.
-- Replace placeholder links in the footer and pricing sections with production resources when ready.
-
-## Additional webapps
-- `apps/json-combiner`: C# minimal API that combines uploaded JSON files. Arrays are concatenated, objects are deep-merged, and mixed roots are wrapped into a single array. Run it locally with:
-  ```bash
-  cd apps/json-combiner
-  dotnet run
-  ```
-  The app serves a standalone UI from its own folder so webapps stay separated in the repository.
+- User passwords are stored as bcrypt hashes
+- Profile updates persist to the database and refresh the session payload
+- Replace placeholder links in the footer and pricing sections with production resources when ready
+- Old `/excel-to-json.html` in root redirects to new location for backwards compatibility

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './src/routes/auth.js';
 import pageRoutes from './src/routes/pages.js';
 import adminRoutes from './src/routes/admin.js';
-import excelRoutes from './src/routes/excel.js';
+import excelRoutes from './apps/excel-to-json/src/routes/excel.js';
 import { setUserLocals } from './src/middleware/auth.js';
 import './src/db.js';
 
@@ -22,7 +22,10 @@ const app = express();
 const SQLiteStore = SQLiteStoreFactory(session);
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', [
+  path.join(__dirname, 'views'),
+  path.join(__dirname, 'apps/excel-to-json/views')
+]);
 
 app.use(helmet());
 app.use(express.urlencoded({ extended: true }));
