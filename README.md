@@ -1,6 +1,6 @@
 # Monetize Hub Starter
 
-A starter website for hosting webapps with monetization in mind. It provides a home page, about page, navigation menu, and a robust login/account system backed by SQLite.
+A starter website for hosting webapps with monetization in mind. It provides a home page, about page, navigation menu, and a login/account system backed by Supabase Auth and the provided public schema (profiles, apps, user_subscriptions, addresses, payment_methods).
 
 ## Static preview
 - View the static landing page on GitHub Pages: https://natesobol.github.io/Nates-Free-Tools/
@@ -15,13 +15,13 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 
 ## Features
 - Home and About pages with modern UI and navigation menu
-- Registration and login with hashed passwords and persistent sessions
-- Account dashboard for updating profile, subscription plan, and marketing preferences
-- Admin-only dashboard for reviewing all accounts (seeded with `admin@example.com` / `admin` — change immediately)
+- Registration and login backed by Supabase Auth with persistent sessions
+- Account dashboard for updating profile details and marketing preferences stored in `public.profiles`
+- Admin-only dashboard for reviewing all profiles stored in Supabase
 - Excel-to-JSON converter webapp with upload, preview, and JSON download
 - CSV/XML converter that handles both directions with previews
 - Browser-based PDF splitter for page- or size-based slicing
-- SQLite database for user data and session storage
+- Supabase database for user data plus SQLite-backed session storage
 - EJS templating with responsive styling
 
 ## Getting started
@@ -33,6 +33,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
    ```bash
    cp .env.example .env
    ```
+   At minimum set `SUPABASE_URL` and `SUPABASE_ANON_KEY`; the repo defaults to the provided project URL and anon key if none are supplied.
 3. Start the development server:
    ```bash
    npm run dev
@@ -147,13 +148,13 @@ apps/
 
 ## Tech Stack
 - Node.js + Express (main application)
-- SQLite for data and session storage
+- Supabase for user data with SQLite session storage
 - EJS for server-rendered views
 - Helmet and secure session defaults for baseline security
 - C# .NET (JSON Combiner and PDF Splitter webapps)
 
 ## Notes
-- User passwords are stored as bcrypt hashes
-- Profile updates persist to the database and refresh the session payload
+- User passwords are managed by Supabase Auth
+- Profile updates persist to Supabase and refresh the session payload
 - Replace placeholder links in the footer and pricing sections with production resources when ready
 - Old `/excel-to-json.html` in root redirects to new location for backwards compatibility

@@ -3,43 +3,48 @@
   <div class="section-header">
     <div>
       <p class="eyebrow">Account center</p>
-      <h1>Manage your profile and plan</h1>
-      <p class="lede">Update your information, subscription level, and marketing preferences.</p>
+      <h1>Manage your profile and access</h1>
+      <p class="lede">Update your information, marketing preferences, and see which apps you can use.</p>
     </div>
     <div class="account-summary">
       <p class="label">Signed in as</p>
-      <p class="value"><%= user.email %></p>
-      <p class="label">Current plan</p>
-      <p class="value"><%= user.subscription_plan %></p>
+      <p class="value"><%= email %></p>
+      <p class="label">Role</p>
+      <p class="value"><%= profile ? profile.role : '' %></p>
     </div>
   </div>
 
   <form method="POST" action="/account" class="form-grid card">
     <label>
       <span>Full name</span>
-      <input type="text" name="fullName" value="<%= user.full_name || '' %>" required />
-    </label>
-    <label>
-      <span>Subscription plan</span>
-      <select name="subscriptionPlan" required>
-        <option value="free" <%= user.subscription_plan === 'free' ? 'selected' : '' %>>Free</option>
-        <option value="pro" <%= user.subscription_plan === 'pro' ? 'selected' : '' %>>Pro</option>
-        <option value="enterprise" <%= user.subscription_plan === 'enterprise' ? 'selected' : '' %>>Enterprise</option>
-      </select>
+      <input type="text" name="fullName" value="<%= profile?.full_name || '' %>" required />
     </label>
     <label class="checkbox">
-      <input type="checkbox" name="marketingOptIn" <%= user.marketing_opt_in ? 'checked' : '' %> />
+      <input type="checkbox" name="marketingOptIn" <%= profile?.marketing_opt_in ? 'checked' : '' %> />
       <span>Receive product updates and marketing emails</span>
     </label>
     <button type="submit" class="button primary btn btn-primary btn-modern">Save changes</button>
   </form>
 
   <div class="card stack">
-    <h3>Data model overview</h3>
-    <p>
-      User records store email, hashed password, full name, subscription plan, marketing preference, and timestamps.
-      Plug in billing providers or ad networks by referencing the subscription plan and marketing flags stored in the database.
-    </p>
+    <h3>Subscribed apps</h3>
+    <% if (!subscriptions || !subscriptions.length) { %>
+      <p class="muted">No app subscriptions found for this account.</p>
+    <% } else { %>
+      <ul class="subscription-list">
+        <% subscriptions.forEach((sub) => { %>
+          <li class="subscription-item">
+            <div>
+              <p class="value"><%= sub.app?.name || sub.app?.slug || 'Unknown app' %></p>
+              <p class="label">Slug: <%= sub.app?.slug || 'n/a' %></p>
+            </div>
+            <span class="status-chip <%= sub.is_enabled ? 'chip-success' : 'chip-muted' %>">
+              <%= sub.is_enabled ? 'Enabled' : 'Disabled' %>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
   </div>
 </section>
 <%- include('partials/page-bottom') %>

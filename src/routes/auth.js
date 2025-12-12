@@ -1,8 +1,8 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
 import { body, validationResult } from 'express-validator';
-import { createUser, getUserByEmail, getUserById, updateUserProfile } from '../db.js';
+import { createSupabaseClient } from '../lib/supabase.js';
 import { ensureAuthenticated, flashMessage } from '../middleware/auth.js';
+import { ensureProfile, fetchProfileById, updateProfile, fetchUserSubscriptions } from '../services/profileService.js';
 
 const router = express.Router();
 
@@ -22,28 +22,36 @@ router.post(
     }
 
     const { email, password } = req.body;
-    const user = await getUserByEmail(email.toLowerCase());
+    const supabase = createSupabaseClient();
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password });
 
-    if (!user) {
-      flashMessage(req, 'error', 'Invalid credentials.');
+      if (error || !data?.session || !data.user) {
+        flashMessage(req, 'error', 'Invalid credentials.');
+        return res.redirect('/login');
+      }
+
+      await supabase.auth.setSession(data.session);
+      const profile = await ensureProfile(
+        { userId: data.user.id, fullName: data.user.user_metadata?.full_name || '', marketingOptIn: false },
+        supabase
+      );
+
+      req.session.supabase = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
+      };
+      req.session.user = {
+        id: data.user.id,
+        email: data.user.email,
+        fullName: profile?.full_name,
+        marketingOptIn: Boolean(profile?.marketing_opt_in),
+        role: profile?.role || 'user'
+      };
+    } catch (err) {
+      flashMessage(req, 'error', 'Unable to sign in right now. Please try again.');
       return res.redirect('/login');
     }
-
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) {
-      flashMessage(req, 'error', 'Invalid credentials.');
-      return res.redirect('/login');
-    }
-
-    req.session.userId = user.id;
-    req.session.user = {
-      id: user.id,
-      email: user.email,
-      fullName: user.full_name,
-      subscriptionPlan: user.subscription_plan,
-      marketingOptIn: Boolean(user.marketing_opt_in),
-      role: user.role
-    };
 
     const redirectTo = req.session.returnTo || '/account';
     delete req.session.returnTo;
@@ -68,16 +76,41 @@ router.post(
     }
 
     const { email, password, fullName } = req.body;
-    const existing = await getUserByEmail(email.toLowerCase());
-    if (existing) {
-      flashMessage(req, 'error', 'An account with that email already exists.');
+    const supabase = createSupabaseClient();
+
+    try {
+      const { data, error } = await supabase.auth.signUp({ email: email.toLowerCase(), password });
+      if (error) {
+        flashMessage(req, 'error', error.message);
+        return res.redirect('/register');
+      }
+
+      if (!data?.user || !data.session) {
+        flashMessage(req, 'success', 'Account created. Check your email to confirm your address before logging in.');
+        return res.redirect('/login');
+      }
+
+      await supabase.auth.setSession(data.session);
+      await ensureProfile({ userId: data.user.id, fullName, marketingOptIn: false }, supabase);
+
+      req.session.supabase = {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
+      };
+      req.session.user = {
+        id: data.user.id,
+        email: data.user.email,
+        fullName,
+        marketingOptIn: false,
+        role: 'user'
+      };
+    } catch (err) {
+      flashMessage(req, 'error', 'Unable to create your account right now. Please try again.');
       return res.redirect('/register');
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    await createUser({ email: email.toLowerCase(), passwordHash, fullName });
-    flashMessage(req, 'success', 'Account created. Please log in.');
-    return res.redirect('/login');
+    flashMessage(req, 'success', 'Account created. You are now signed in.');
+    return res.redirect('/account');
   }
 );
 
@@ -88,18 +121,28 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/account', ensureAuthenticated, async (req, res) => {
-  const user = await getUserById(req.session.userId);
-  res.render('account', {
-    title: 'Your account',
-    user
-  });
+  try {
+    const supabase =
+      req.supabase || createSupabaseClient(req.session.supabase?.access_token, req.session.supabase?.refresh_token);
+    const profile = req.profile || (await fetchProfileById(req.session.user.id, supabase));
+    const subscriptions = await fetchUserSubscriptions(req.session.user.id, supabase);
+
+    res.render('account', {
+      title: 'Your account',
+      profile,
+      email: req.session.user.email,
+      subscriptions
+    });
+  } catch (error) {
+    flashMessage(req, 'error', 'Unable to load your profile right now. Please try again.');
+    return res.redirect('/');
+  }
 });
 
 router.post(
   '/account',
   ensureAuthenticated,
   body('fullName').trim().notEmpty().withMessage('Name is required.'),
-  body('subscriptionPlan').isIn(['free', 'pro', 'enterprise']).withMessage('Invalid plan selected.'),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -107,19 +150,30 @@ router.post(
       return res.redirect('/account');
     }
 
-    const { fullName, subscriptionPlan, marketingOptIn } = req.body;
-    await updateUserProfile(req.session.userId, {
-      fullName,
-      subscriptionPlan,
-      marketingOptIn: marketingOptIn === 'on'
-    });
+    const { fullName, marketingOptIn } = req.body;
+    try {
+      const supabase =
+        req.supabase || createSupabaseClient(req.session.supabase?.access_token, req.session.supabase?.refresh_token);
 
-    req.session.user = {
-      ...req.session.user,
-      fullName,
-      subscriptionPlan,
-      marketingOptIn: marketingOptIn === 'on'
-    };
+      const updated = await updateProfile(
+        req.session.user.id,
+        {
+          fullName,
+          marketingOptIn: marketingOptIn === 'on'
+        },
+        supabase
+      );
+
+      req.session.user = {
+        ...req.session.user,
+        fullName: updated.full_name,
+        marketingOptIn: Boolean(updated.marketing_opt_in),
+        role: updated.role
+      };
+    } catch (error) {
+      flashMessage(req, 'error', 'Could not update your profile. Please try again.');
+      return res.redirect('/account');
+    }
 
     flashMessage(req, 'success', 'Profile updated.');
     return res.redirect('/account');

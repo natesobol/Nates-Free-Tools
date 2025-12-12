@@ -11,8 +11,7 @@ import pageRoutes from './src/routes/pages.js';
 import adminRoutes from './src/routes/admin.js';
 import excelRoutes from './apps/excel-to-json/src/routes/excel.js';
 import csvXmlRoutes from './apps/csv-xml-converter/src/routes/csv-xml.js';
-import { setUserLocals } from './src/middleware/auth.js';
-import './src/db.js';
+import { attachSupabase } from './src/middleware/auth.js';
 
 dotenv.config();
 
@@ -54,7 +53,7 @@ app.use(
   })
 );
 
-app.use(setUserLocals);
+app.use(attachSupabase);
 
 app.use('/', pageRoutes);
 app.use('/', authRoutes);

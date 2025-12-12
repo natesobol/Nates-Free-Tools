@@ -1,15 +1,23 @@
 import express from 'express';
 import { ensureAdmin } from '../middleware/auth.js';
-import { getAllUsers } from '../db.js';
+import { listProfiles } from '../services/profileService.js';
 
 const router = express.Router();
 
 router.get('/admin', ensureAdmin, async (req, res) => {
-  const users = await getAllUsers();
-  res.render('admin', {
-    title: 'Admin dashboard',
-    users
-  });
+  try {
+    const users = await listProfiles(req.supabase);
+    res.render('admin', {
+      title: 'Admin dashboard',
+      users
+    });
+  } catch (error) {
+    console.error('Failed to load profiles', error);
+    res.status(500).render('admin', {
+      title: 'Admin dashboard',
+      users: []
+    });
+  }
 });
 
 export default router;
