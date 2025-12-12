@@ -8,14 +8,15 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - Static versions of webapps are available at:
   - Excel to JSON: `/apps/excel-to-json/index.html`
   - YAML/JSON Converter: `/apps/yaml-json-converter/index.html`
-  - JSON Combiner: `/apps/json-combiner/wwwroot/index.html`
-  - Batch File Renamer: `/apps/batch-file-renamer/wwwroot/index.html`
-  - CSV/XML Converter: `/apps/csv-xml-converter/index.html`
-  - List Comparison / Diff Checker: `/apps/list-comparison/wwwroot/index.html`
-  - PDF Splitter: `/apps/pdf-splitter/wwwroot/index.html`
-  - PowerPoint → PDF: `/apps/powerpoint-to-pdf/wwwroot/index.html`
-  - PowerPoint Image Extractor: `/apps/powerpoint-image-extractor/wwwroot/index.html`
-  - JSON to Excel Creator: `/apps/json-to-excel/wwwroot/index.html`
+- JSON Combiner: `/apps/json-combiner/wwwroot/index.html`
+- Batch File Renamer: `/apps/batch-file-renamer/wwwroot/index.html`
+- CSV/XML Converter: `/apps/csv-xml-converter/index.html`
+- List Comparison / Diff Checker: `/apps/list-comparison/wwwroot/index.html`
+- PDF Splitter: `/apps/pdf-splitter/wwwroot/index.html`
+- PowerPoint → PDF: `/apps/powerpoint-to-pdf/wwwroot/index.html`
+- PowerPoint Image Extractor: `/apps/powerpoint-image-extractor/wwwroot/index.html`
+- JSON to Excel Creator: `/apps/json-to-excel/wwwroot/index.html`
+- Multi-CSV Column Merger: `/apps/multi-csv-column-merger/wwwroot/index.html`
 - Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
@@ -97,6 +98,22 @@ Located in `apps/json-combiner/`, this C# .NET minimal API webapp combines multi
 **Run locally:**
 ```bash
 cd apps/json-combiner
+dotnet run
+```
+
+### Multi-CSV Column Merger
+Located in `apps/multi-csv-column-merger/`, this C# minimal API merges several CSV exports using a shared key column.
+
+**Features:**
+- Drag-and-drop support for multiple CSV uploads
+- Auto-detects common key headers (email, product ID, order ID) with manual override
+- Choose inner or outer join behavior for merged rows
+- Preview aligned results before downloading
+- Export merged data as CSV or Excel
+
+**Run locally:**
+```bash
+cd apps/multi-csv-column-merger
 dotnet run
 ```
 
