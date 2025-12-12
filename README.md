@@ -96,22 +96,21 @@ cd apps/json-combiner
 dotnet run
 ```
 
-### JSON to Excel (.xlsx) Creator
-Located in `apps/json-to-excel/`, this C# minimal API turns JSON payloads into multi-sheet Excel files.
+### Find & Replace Utility
+Located in `apps/find-and-replace/`, this .NET minimal API performs bulk find-and-replace operations across pasted text or uploaded files.
 
 **Features:**
-- Accepts either pasted JSON text or a single uploaded file per conversion
-- Top-level arrays populate a `Data` worksheet; nested arrays create child sheets with index columns
-- Nested objects are flattened using dot notation with auto-sized columns
+- Regex or plain-text matching with case-sensitivity toggle
+- Process one or many files at once with per-file match counts
+- Handles plain text plus .json, .md, .html, .rtf, and .docx files with downloads in the right format
+- Instant previews plus download-ready updated files
+- In-memory processing only—no uploads are persisted
 
 **Run locally:**
 ```bash
-cd apps/json-to-excel
-dotnet restore
+cd apps/find-and-replace
 dotnet run
 ```
-
-**Static Version:** `/apps/json-to-excel/wwwroot/index.html`
 
 ### CSV/XML Data Converter
 Located in `apps/csv-xml-converter/`, this tool converts CSV to XML and XML back to CSV.
