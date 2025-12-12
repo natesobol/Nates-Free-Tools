@@ -316,6 +316,17 @@ Located in `apps/pdf-link-extractor/`, this C#-hosted webapp extracts every URL 
 **Server Route:** `/pdf-link-extractor`
 **Static Version:** `/apps/pdf-link-extractor/wwwroot/index.html`
 
+### Podcast Episode Downloader
+Located in `apps/podcast-episode-downloader/`, this ASP.NET Core webapp reads public podcast RSS feeds (or direct episode links) to queue audio downloads.
+
+**Features:**
+- Paste a feed URL to preview episodes with title, publish date, and duration
+- Select one or more episodes to download as MP3s
+- Multiple selections are automatically bundled into a ZIP archive for easier archiving
+
+**Server Route:** `/podcast-episode-downloader`
+**Static Version:** `/apps/podcast-episode-downloader/wwwroot/index.html`
+
 ### Batch PDF Text Extractor
 Located in `apps/batch-pdf-text-extractor/`, this .NET 8 minimal API extracts text from many PDFs at once with layered fallbacks.
 

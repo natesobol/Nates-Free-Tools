@@ -67,6 +67,10 @@ app.use('/pattern-text-extractor', express.static(path.join(__dirname, 'apps/pat
 app.use('/pdf-link-extractor', express.static(path.join(__dirname, 'apps/pdf-link-extractor/wwwroot')));
 app.use('/pdf-splitter', express.static(path.join(__dirname, 'apps/pdf-splitter/wwwroot')));
 app.use('/phone-number-extractor', express.static(path.join(__dirname, 'apps/phone-number-extractor/wwwroot')));
+app.use(
+  '/podcast-episode-downloader',
+  express.static(path.join(__dirname, 'apps/podcast-episode-downloader/wwwroot'))
+);
 app.use('/powerpoint-image-extractor', express.static(path.join(__dirname, 'apps/powerpoint-image-extractor/wwwroot')));
 app.use('/powerpoint-slide-exporter', express.static(path.join(__dirname, 'apps/powerpoint-slide-exporter/wwwroot')));
 app.use('/powerpoint-to-pdf', express.static(path.join(__dirname, 'apps/powerpoint-to-pdf/wwwroot')));
