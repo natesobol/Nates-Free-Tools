@@ -737,6 +737,45 @@ textarea:focus {
   color: var(--muted);
 }
 
+.subscription-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.subscription-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+}
+
+.chip-success {
+  background: #e6f4ea;
+  color: #0f5132;
+  border-color: #b6e0c3;
+}
+
+.chip-muted {
+  background: #f1f3f5;
+  color: #495057;
+}
+
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
