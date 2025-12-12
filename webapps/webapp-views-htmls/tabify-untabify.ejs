@@ -1,0 +1,129 @@
+<%- include('../../views/partials/page-top', {
+  title: 'Tabify or Untabify',
+  metaDescription: 'Convert tabs to spaces or spaces to tabs with a preview. Paste text only, pick a spacing width, and copy back a cleanly formatted snippet.',
+  canonicalUrl: 'https://natesobol.github.io/Nates-Free-Tools/tabify-untabify',
+  ogTitle: 'Tabify or Untabify',
+  ogDescription: 'Paste text, choose tabs → spaces or spaces → tabs, and preview the converted snippet instantly.'
+}) %>
+<section class="tool-hero">
+  <div>
+    <p class="eyebrow">Whitespace fixer</p>
+    <h1>Tabify or untabify pasted text.</h1>
+    <p class="lede">
+      Paste code or plaintext, choose tabs-to-spaces or spaces-to-tabs, set your spacing width, and preview before you copy.
+      Perfect for cleaning up snippets copied between editors with different indentation rules.
+    </p>
+    <ul class="trust-points">
+      <li>Text input only — no file uploads required.</li>
+      <li>Configurable spaces per tab (1–8) with trailing whitespace cleanup.</li>
+      <li>Instant preview plus before/after character counts for quick QA.</li>
+    </ul>
+  </div>
+  <div class="converter-card">
+    <form id="convert-form">
+      <label for="text">Paste text</label>
+      <textarea id="text" name="text" class="form-control" rows="8" placeholder="\tIndented line\n    Four leading spaces"></textarea>
+
+      <fieldset class="mt-3">
+        <legend>Direction</legend>
+        <label><input type="radio" name="mode" value="tabs-to-spaces" checked /> Tabs → Spaces</label>
+        <label><input type="radio" name="mode" value="spaces-to-tabs" /> Spaces → Tabs</label>
+      </fieldset>
+
+      <label for="spacesPerTab" class="mt-3">Spaces per tab (1–8)</label>
+      <input id="spacesPerTab" name="spacesPerTab" class="form-control" type="number" min="1" max="8" value="4" />
+
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" value="true" id="trimTrailingWhitespace" name="trimTrailingWhitespace" checked />
+        <label class="form-check-label" for="trimTrailingWhitespace">Trim trailing whitespace first</label>
+      </div>
+
+      <p class="help-text">No uploads or downloads — just paste, convert, preview, and copy.</p>
+      <button type="submit" class="button primary btn btn-primary btn-modern full-width">Convert</button>
+      <div class="flash flash-error mt-2" id="error" style="display:none;"></div>
+    </form>
+  </div>
+</section>
+
+<section class="result-panel">
+  <div class="result-card" id="results" style="display:none;">
+    <h2>Converted output</h2>
+    <p class="help-text" id="summary"></p>
+    <div class="pill-bar" id="metrics"></div>
+    <pre class="result-pre" id="output"></pre>
+    <h3>Preview (first 5 lines)</h3>
+    <pre class="result-pre" id="preview"></pre>
+  </div>
+  <div class="result-card">
+    <h2>When to use this</h2>
+    <ul class="checklist">
+      <li>Standardizing indentation after copying between VS Code, Notepad++, or terminals.</li>
+      <li>Cleaning up code snippets before sharing in chats or documentation.</li>
+      <li>Quickly toggling between tabbed and spaced indentation for style guides.</li>
+    </ul>
+    <p class="help-text">Everything runs in-memory; nothing gets stored or uploaded elsewhere.</p>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('convert-form');
+  const errorBox = document.getElementById('error');
+  const results = document.getElementById('results');
+  const output = document.getElementById('output');
+  const preview = document.getElementById('preview');
+  const summary = document.getElementById('summary');
+  const metrics = document.getElementById('metrics');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.style.display = 'none';
+    results.style.display = 'none';
+    metrics.innerHTML = '';
+
+    const data = {
+      text: document.getElementById('text').value,
+      mode: form.elements['mode'].value,
+      spacesPerTab: Number(document.getElementById('spacesPerTab').value) || 4,
+      trimTrailingWhitespace: document.getElementById('trimTrailingWhitespace').checked
+    };
+
+    try {
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Conversion failed.');
+      }
+
+      summary.textContent = payload.mode === 'TabsToSpaces'
+        ? `Tabs → spaces with ${payload.stats.spacesPerTab} spaces per tab`
+        : `Spaces → tabs with ${payload.stats.spacesPerTab} spaces per tab`;
+
+      output.textContent = payload.converted;
+      preview.textContent = payload.preview || 'Preview unavailable';
+
+      const badges = [
+        `${payload.stats.inputLength} → ${payload.stats.outputLength} characters`,
+        `${payload.stats.tabsFound} tabs detected`,
+        `${payload.stats.spaceRunsConverted} space runs converted`
+      ];
+
+      badges.forEach(text => {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = text;
+        metrics.appendChild(pill);
+      });
+
+      results.style.display = 'block';
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.style.display = 'block';
+    }
+  });
+</script>
+<%- include('../../views/partials/page-bottom') %>
