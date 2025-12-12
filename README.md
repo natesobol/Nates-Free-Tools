@@ -23,6 +23,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - Phone Number Extractor: `/apps/phone-number-extractor/wwwroot/index.html`
 - Product SKU Extractor: `/apps/product-sku-extractor/wwwroot/index.html`
 - PDF Link Extractor: `/apps/pdf-link-extractor/wwwroot/index.html`
+- Hyperlinked Text Extractor: `/apps/hyperlink-text-extractor/wwwroot/index.html`
 - Resume Contact Info Extractor: `/apps/resume-contact-extractor/wwwroot/index.html`
 - Color Extractor: `/apps/color-extractor/wwwroot/index.html`
 - Image Path Extractor: `/apps/image-path-extractor/wwwroot/index.html`
@@ -418,6 +419,10 @@ apps/
 │   ├── Program.cs          # Minimal API and path detector
 │   ├── file-path-extractor.csproj
 │   └── wwwroot/            # Static UI assets
+├── date-line-extractor/    # C# date/datetime line extractor
+│   ├── Program.cs          # Minimal API reading PDFs, DOCX, TXT, CSV, and logs
+│   ├── date-line-extractor.csproj
+│   └── wwwroot/            # Static UI assets
 └── json-to-excel/          # C# JSON → Excel creator
     ├── wwwroot/            # Static UI assets
     ├── Program.cs          # Minimal API and converter
@@ -429,10 +434,25 @@ apps/
 - Supabase for user data with SQLite session storage
 - EJS for server-rendered views
 - Helmet and secure session defaults for baseline security
-- C# .NET (JSON Combiner, JSON to Excel, PDF Splitter, PDF Link Extractor, Bullet List Extractor, List Comparison, Find & Replace, Batch File Renamer, and PowerPoint Image Extractor webapps)
+- C# .NET (JSON Combiner, JSON to Excel, PDF Splitter, PDF Link Extractor, Bullet List Extractor, List Comparison, Find & Replace, Batch File Renamer, PowerPoint Image Extractor, and Date Line Extractor webapps)
 
 ## Notes
 - User passwords are managed by Supabase Auth
 - Profile updates persist to Supabase and refresh the session payload
 - Replace placeholder links in the footer and pricing sections with production resources when ready
 - Old `/excel-to-json.html` in root redirects to new location for backwards compatibility
+
+### Delimited Text Extractor
+Located in `apps/delimited-text-extractor/`, this .NET 8 minimal API extracts text enclosed in parentheses, brackets, braces, or quotes from uploaded files.
+
+**Features:**
+- Accepts `.txt`, `.docx`, `.pdf`, and `.csv`
+- Returns grouped matches for parentheses, brackets, braces, double quotes, and single quotes
+- Browser UI for drag-and-drop uploads with per-file summaries
+
+**Run locally:**
+```bash
+cd apps/delimited-text-extractor
+dotnet run
+```
+
