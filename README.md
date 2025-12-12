@@ -24,6 +24,7 @@ A starter website for hosting webapps with monetization in mind. It provides a h
 - PDF Link Extractor: `/apps/pdf-link-extractor/wwwroot/index.html`
 - Resume Contact Info Extractor: `/apps/resume-contact-extractor/wwwroot/index.html`
 - Image Path Extractor: `/apps/image-path-extractor/wwwroot/index.html`
+- Capitalized Phrase Extractor: `/apps/capitalized-phrase-extractor/wwwroot/index.html`
 - Dynamic features (login, admin, server-backed Excel conversion) require running the Node.js server locally or on a host that supports server-side rendering.
 
 ## Features
