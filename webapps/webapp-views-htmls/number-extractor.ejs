@@ -1,0 +1,137 @@
+<%- include('../../views/partials/page-top', {
+  title: 'Extract All Numbers From Text, Word, Excel, and CSV Files',
+  metaDescription: 'Upload TXT, DOCX, CSV, or XLSX files or paste text to pull every number. Toggle decimals, currency symbols, and ignoring numbers inside words.',
+  canonicalUrl: 'https://natesobol.github.io/Nates-Free-Tools/number-extractor',
+  ogTitle: 'Extract Numbers From Documents',
+  ogDescription: 'Scan text, Word, Excel, and CSV files for numeric values with decimal and currency handling.'
+}) %>
+<section class="tool-hero">
+  <div>
+    <p class="eyebrow">Financial & audit helper</p>
+    <h1>Extract all numbers from text, Word, Excel, and CSV files.</h1>
+    <p class="lede">
+      Upload multiple documents or paste text, then pull every numeric value with options to keep decimals, capture currency
+      symbols, and ignore numbers tucked inside product codes like <code>ModelX500</code>.
+    </p>
+    <ul class="trust-points">
+      <li>Supports TXT, DOCX, CSV, XLSX plus inline pasted text.</li>
+      <li>Toggle decimal and currency symbol handling to match your audit rules.</li>
+      <li>Skip numbers that are glued to words for cleaner outputs.</li>
+    </ul>
+  </div>
+  <div class="converter-card">
+    <form id="extract-form" enctype="multipart/form-data">
+      <label for="text">Optional inline text</label>
+      <textarea id="text" name="text" class="form-control" rows="6" placeholder="Invoices: $1,245.50 due on 02/28/2025"></textarea>
+
+      <label for="files" class="mt-3">Upload files (.txt, .docx, .csv, .xlsx)</label>
+      <input id="files" name="files" type="file" class="form-control" accept=".txt,.docx,.csv,.xlsx" multiple />
+      <p class="help-text">Files stay in memory only—nothing is stored.</p>
+
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="true" id="includeDecimals" name="includeDecimals" checked />
+        <label class="form-check-label" for="includeDecimals">Include decimals</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="true" id="includeCurrencySymbols" name="includeCurrencySymbols" />
+        <label class="form-check-label" for="includeCurrencySymbols">Include currency symbols</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="true" id="ignoreNumbersInWords" name="ignoreNumbersInWords" checked />
+        <label class="form-check-label" for="ignoreNumbersInWords">Ignore numbers inside words (ModelX500)</label>
+      </div>
+
+      <button type="submit" class="button primary btn btn-primary btn-modern full-width">Extract numbers</button>
+      <div class="flash flash-error mt-2" id="error" style="display:none;"></div>
+    </form>
+  </div>
+</section>
+
+<section class="result-panel">
+  <div class="result-card" id="results" style="display:none;">
+    <h2>Extracted numbers</h2>
+    <p class="help-text" id="summary"></p>
+    <div id="items" class="result-grid"></div>
+  </div>
+  <div class="result-card">
+    <h2>Why this helps auditors</h2>
+    <ul class="checklist">
+      <li>Pull totals and line items from exported financials without manual scanning.</li>
+      <li>Collect SKU prices across CSV or XLSX reports in one pass.</li>
+      <li>Strip noise by ignoring numbers glued to model names or product codes.</li>
+    </ul>
+    <p class="help-text">Processing stays in-memory on the server—nothing is persisted.</p>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById('extract-form');
+  const errorBox = document.getElementById('error');
+  const results = document.getElementById('results');
+  const summary = document.getElementById('summary');
+  const items = document.getElementById('items');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.style.display = 'none';
+    results.style.display = 'none';
+    items.innerHTML = '';
+
+    const data = new FormData();
+    const files = document.getElementById('files').files;
+    for (const file of files) {
+      data.append('files', file);
+    }
+
+    data.set('text', document.getElementById('text').value);
+    data.set('includeDecimals', document.getElementById('includeDecimals').checked);
+    data.set('includeCurrencySymbols', document.getElementById('includeCurrencySymbols').checked);
+    data.set('ignoreNumbersInWords', document.getElementById('ignoreNumbersInWords').checked);
+
+    try {
+      const response = await fetch('/api/extract', { method: 'POST', body: data });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Extraction failed.');
+      }
+
+      summary.textContent = `Found ${payload.totalNumbers} numbers across ${payload.results.length} inputs.`;
+
+      payload.results.forEach((result) => {
+        const card = document.createElement('article');
+        card.classList.add('result-card');
+
+        const title = document.createElement('h3');
+        title.textContent = result.source;
+        card.appendChild(title);
+
+        const pillBar = document.createElement('div');
+        pillBar.classList.add('pill-bar');
+        const pill = document.createElement('span');
+        pill.classList.add('pill');
+        pill.textContent = `${result.count} numbers`;
+        pillBar.appendChild(pill);
+        card.appendChild(pillBar);
+
+        if (result.error) {
+          const alert = document.createElement('div');
+          alert.classList.add('flash', 'flash-error');
+          alert.textContent = result.error;
+          card.appendChild(alert);
+        } else {
+          const pre = document.createElement('pre');
+          pre.classList.add('result-pre');
+          pre.textContent = result.numbers.length ? result.numbers.join('\n') : 'No numbers found.';
+          card.appendChild(pre);
+        }
+
+        items.appendChild(card);
+      });
+
+      results.style.display = 'block';
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.style.display = 'block';
+    }
+  });
+</script>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Extract All Numbers</title>
+  <link rel="stylesheet" href="../../../public/css/webapp-theme.css" />
+</head>
+<body>
+  <main>
+    <header class="app-header">
+      <p class="pill">Multi-file C# utility • Number extraction</p>
+      <h1>Extract all numbers from text, Word, Excel, and CSV files.</h1>
+      <p class="muted">Upload multiple documents or paste text, then pull every numeric value with options for decimals, currency symbols, and ignoring numbers inside model names.</p>
+    </header>
+
+    <section class="card">
+      <form id="extract-form">
+        <label for="text">Optional inline text</label>
+        <textarea id="text" name="text" placeholder="Invoices: $1,245.50 due on 02/28/2025"></textarea>
+
+        <label for="files" style="margin-top: 1rem;">Upload files (.txt, .docx, .csv, .xlsx)</label>
+        <input type="file" id="files" name="files" accept=".txt,.docx,.csv,.xlsx" multiple />
+        <small class="muted">Files stay in memory only—nothing is stored.</small>
+
+        <div class="grid" style="margin-top: 1rem;">
+          <div>
+            <label><input type="checkbox" id="includeDecimals" name="includeDecimals" checked /> Include decimals</label>
+            <label><input type="checkbox" id="includeCurrencySymbols" name="includeCurrencySymbols" /> Include currency symbols</label>
+          </div>
+          <div>
+            <label><input type="checkbox" id="ignoreNumbersInWords" name="ignoreNumbersInWords" checked /> Ignore numbers inside words</label>
+            <p class="muted">Avoids catching strings like ModelX500 or Q2FY24.</p>
+            <button type="submit" style="margin-top: 0.5rem;">Extract numbers</button>
+            <div id="error" class="error" style="display:none; margin-top:0.5rem;"></div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" style="margin-top: 1.25rem;">
+      <div id="results" style="display:none;">
+        <p class="success" id="summary"></p>
+        <div id="items" class="grid" style="gap: 1rem;"></div>
+      </div>
+      <div id="empty" class="muted">Upload files or paste text to see extracted numbers.</div>
+    </section>
+  </main>
+
+  <template id="result-template">
+    <div class="stat">
+      <strong class="source"></strong>
+      <p class="muted kind"></p>
+      <div class="pill-bar metrics"></div>
+      <pre class="values"></pre>
+      <div class="error" style="display:none;"></div>
+    </div>
+  </template>
+
+  <script>
+    const form = document.getElementById('extract-form');
+    const errorBox = document.getElementById('error');
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    const items = document.getElementById('items');
+    const emptyState = document.getElementById('empty');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      results.style.display = 'none';
+      emptyState.style.display = 'none';
+      items.innerHTML = '';
+
+      const data = new FormData();
+      const files = document.getElementById('files').files;
+      for (const file of files) {
+        data.append('files', file);
+      }
+
+      data.set('text', document.getElementById('text').value);
+      data.set('includeDecimals', document.getElementById('includeDecimals').checked);
+      data.set('includeCurrencySymbols', document.getElementById('includeCurrencySymbols').checked);
+      data.set('ignoreNumbersInWords', document.getElementById('ignoreNumbersInWords').checked);
+
+      try {
+        const response = await fetch('/api/extract', { method: 'POST', body: data });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Extraction failed.');
+        }
+
+        summary.textContent = `Found ${payload.totalNumbers} numbers across ${payload.results.length} inputs.`;
+
+        payload.results.forEach((result) => {
+          const node = document.getElementById('result-template').content.cloneNode(true);
+          node.querySelector('.source').textContent = result.source;
+          node.querySelector('.kind').textContent = result.kind.toUpperCase();
+
+          const pillBar = node.querySelector('.metrics');
+          pillBar.appendChild(createPill(`${result.count} numbers`));
+
+          if (result.error) {
+            const errorEl = node.querySelector('.error');
+            errorEl.textContent = result.error;
+            errorEl.style.display = 'block';
+          } else if (result.numbers.length) {
+            node.querySelector('.values').textContent = result.numbers.join('\n');
+          } else {
+            node.querySelector('.values').textContent = 'No numbers found.';
+          }
+
+          items.appendChild(node);
+        });
+
+        results.style.display = 'block';
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.style.display = 'block';
+        emptyState.style.display = 'block';
+      }
+    });
+
+    function createPill(text) {
+      const pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.textContent = text;
+      return pill;
+    }
+  </script>
+</body>
+</html>

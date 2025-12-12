@@ -73,4 +73,13 @@ router.get('/extract-text-inside-quotes', (req, res) => {
   });
 });
 
+router.get('/number-extractor', (req, res) => {
+  res.render('number-extractor', {
+    title: 'Extract All Numbers From Text, Word, Excel, and CSV Files',
+    metaDescription:
+      'Upload TXT, DOCX, CSV, or XLSX files or paste text to pull every number with options for decimals, currency symbols, and ignoring numbers inside words.',
+    metaKeywords: 'extract numbers from docx,excel number extractor,csv number scraper,financial audit number finder'
+  });
+});
+
 export default router;
