@@ -62,6 +62,7 @@
         white-space: pre-wrap;
       }
     </style>
+        <script src="public/js/webapps-menu.js" defer></script>
     <script src="js/site-chrome.js" defer></script>
 </head>
   <body class="tool-page">
@@ -90,24 +91,11 @@
         <a href="../../../index.html" class="nav-link">Home</a>
         <a href="../../../about.html" class="nav-link">About</a>
         <details class="nav-dropdown" open>
+
           <summary class="nav-link nav-dropdown-toggle">Webapps <span aria-hidden="true">▾</span></summary>
-          <div class="nav-dropdown-menu">
-            <a href="../../../apps/excel-to-json/index.html" class="dropdown-link">Excel → JSON</a>
-            <a href="../../../apps/json-to-excel/wwwroot/index.html" class="dropdown-link">JSON → Excel</a>
-            <a href="../../../apps/xml-json-translator/index.html" class="dropdown-link">XML ⇄ JSON Translator</a>
-            <a href="../../../apps/yaml-json-converter/index.html" class="dropdown-link">YAML ↔ JSON Converter</a>
-            <a href="../../../apps/json-combiner/wwwroot/index.html" class="dropdown-link">JSON Combiner</a>
-            <a href="../../../apps/find-and-replace/wwwroot/index.html" class="dropdown-link">Find & Replace</a>
-            <a href="../../../apps/csv-xml-converter/index.html" class="dropdown-link">CSV/XML Converter</a>
-            <a href="../../../apps/list-comparison/wwwroot/index.html" class="dropdown-link">List Comparison / Diff Checker</a>
-            <a href="../../../apps/pdf-splitter/wwwroot/index.html" class="dropdown-link">PDF Splitter</a>
-            <a href="../../../apps/bullet-list-extractor/wwwroot/index.html" class="dropdown-link">Bullet List Extractor</a>
-            <a href="../../../apps/pdf-link-extractor/wwwroot/index.html" class="dropdown-link">PDF Link Extractor</a>
-            <a href="../../../apps/resume-contact-extractor/wwwroot/index.html" class="dropdown-link">Resume Contact Extractor</a>
-            <a href="../../../apps/phone-number-extractor/wwwroot/index.html" class="dropdown-link">Phone Number Extractor</a>
-            <a href="../../../apps/image-path-extractor/wwwroot/index.html" class="dropdown-link">Image Path Extractor</a>
-            <a href="../../../apps/capitalized-phrase-extractor/wwwroot/index.html" class="dropdown-link">Capitalized Phrase Extractor</a>
-          </div>
+
+          <div class="nav-dropdown-menu mega-menu" data-webapps-menu></div>
+
         </details>
       </nav>
     </header>

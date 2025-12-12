@@ -7,6 +7,10 @@
 
   const basePath = getBasePath();
 
+  const hasMenuBuilder = () =>
+    typeof window.NDTWebappsMenu?.buildMenu === 'function' &&
+    typeof window.NDTWebappsMenu?.populateMenus === 'function';
+
   function ensureStyles() {
     const head = document.head;
     const stylesheets = ['/css/webapps-unified.css', '/css/styles.css', '/css/webapp-theme.css'];
@@ -33,6 +37,7 @@
   }
 
   function buildHeader() {
+    const menuHtml = hasMenuBuilder() ? window.NDTWebappsMenu.buildMenu(basePath) : '';
     const header = document.createElement('header');
     header.className = 'site-header';
     header.innerHTML = `
@@ -61,24 +66,7 @@
         <a href="${basePath}/about" class="nav-link">About</a>
         <details class="nav-dropdown" open>
           <summary class="nav-link nav-dropdown-toggle">Webapps <span aria-hidden="true">▾</span></summary>
-          <div class="nav-dropdown-menu">
-            <a href="${basePath}/excel-to-json" class="dropdown-link">Excel → JSON</a>
-            <a href="${basePath}/json-to-excel" class="dropdown-link">JSON → Excel</a>
-            <a href="${basePath}/xml-json-translator" class="dropdown-link">XML ⇄ JSON Translator</a>
-            <a href="${basePath}/yaml-json-converter" class="dropdown-link">YAML ↔ JSON Converter</a>
-            <a href="${basePath}/json-combiner" class="dropdown-link">JSON Combiner</a>
-            <a href="${basePath}/find-and-replace" class="dropdown-link">Find &amp; Replace</a>
-            <a href="${basePath}/csv-xml-converter" class="dropdown-link">CSV/XML Converter</a>
-            <a href="${basePath}/list-comparison" class="dropdown-link">List Comparison / Diff Checker</a>
-            <a href="${basePath}/html-metadata-extractor" class="dropdown-link">HTML Metadata Extractor</a>
-            <a href="${basePath}/html-tag-cleaner" class="dropdown-link">HTML Tag Cleaner</a>
-            <a href="${basePath}/tabify-untabify" class="dropdown-link">Tabify or Untabify</a>
-            <a href="${basePath}/extract-text-inside-quotes" class="dropdown-link">Extract Text Inside Quotes</a>
-            <a href="${basePath}/pdf-splitter" class="dropdown-link">PDF Splitter</a>
-            <a href="${basePath}/bullet-list-extractor" class="dropdown-link">Bullet List Extractor</a>
-            <a href="${basePath}/powerpoint-to-pdf" class="dropdown-link">PowerPoint → PDF</a>
-            <a href="${basePath}/powerpoint-image-extractor" class="dropdown-link">PowerPoint Image Extractor</a>
-          </div>
+          <div class="nav-dropdown-menu mega-menu" data-webapps-menu>${menuHtml}</div>
         </details>
       </nav>
     `;
@@ -88,6 +76,9 @@
   function injectHeader() {
     if (!document.querySelector('.site-header')) {
       document.body.prepend(buildHeader());
+      if (hasMenuBuilder()) {
+        window.NDTWebappsMenu.populateMenus();
+      }
     }
   }
 

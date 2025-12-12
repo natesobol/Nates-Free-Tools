@@ -83,6 +83,7 @@
         border-radius: 8px;
       }
     </style>
+        <script src="public/js/webapps-menu.js" defer></script>
     <script src="js/site-chrome.js" defer></script>
 </head>
   <body class="tool-page">
@@ -111,23 +112,11 @@
         <a href="../../../index.html" class="nav-link">Home</a>
         <a href="../../../about.html" class="nav-link">About</a>
         <details class="nav-dropdown" open>
+
           <summary class="nav-link nav-dropdown-toggle">Webapps <span aria-hidden="true">▾</span></summary>
-          <div class="nav-dropdown-menu">
-            <a href="../../../apps/excel-to-json/index.html" class="dropdown-link">Excel → JSON</a>
-            <a href="../../../apps/json-to-excel/wwwroot/index.html" class="dropdown-link">JSON → Excel</a>
-            <a href="../../../apps/xml-json-translator/index.html" class="dropdown-link">XML ⇄ JSON Translator</a>
-            <a href="../../../apps/yaml-json-converter/index.html" class="dropdown-link">YAML ↔ JSON Converter</a>
-            <a href="../../../apps/json-combiner/wwwroot/index.html" class="dropdown-link">JSON Combiner</a>
-            <a href="../../../apps/find-and-replace/wwwroot/index.html" class="dropdown-link">Find & Replace</a>
-            <a href="../../../apps/csv-xml-converter/index.html" class="dropdown-link">CSV/XML Converter</a>
-            <a href="../../../apps/list-comparison/wwwroot/index.html" class="dropdown-link">List Comparison / Diff Checker</a>
-            <a href="../../../apps/html-tag-cleaner/wwwroot/index.html" class="dropdown-link">HTML Tag Cleaner</a>
-            <a href="../../../apps/tabify-untabify/wwwroot/index.html" class="dropdown-link">Tabify or Untabify</a>
-            <a href="../../../apps/phone-number-extractor/wwwroot/index.html" class="dropdown-link">Phone Number Extractor</a>
-            <a href="../../../apps/email-thread-extractor/wwwroot/index.html" class="dropdown-link">Email Thread Extractor</a>
-            <a href="../../../apps/product-sku-extractor/wwwroot/index.html" class="dropdown-link">Product SKU Extractor</a>
-            <a href="../../../apps/pattern-text-extractor/wwwroot/index.html" class="dropdown-link active">Pattern Text Extractor</a>
-          </div>
+
+          <div class="nav-dropdown-menu mega-menu" data-webapps-menu></div>
+
         </details>
       </nav>
     </header>
