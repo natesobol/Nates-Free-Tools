@@ -1,0 +1,195 @@
+<%- include('../../views/partials/page-top', {
+  title: 'Extract Palette Colors from CSS, HTML, and Figma JSON',
+  metaDescription: 'Upload CSS, HTML, SVG, or Figma JSON exports to pull every hex, rgb(), rgba(), or named color with usage counts and a palette preview.',
+  canonicalUrl: 'https://natesobol.github.io/Nates-Free-Tools/color-extractor',
+  ogTitle: 'Color Extractor for Design Audits',
+  ogDescription: 'Find every color used across stylesheets, HTML snippets, SVGs, and Figma JSON exports in one pass.'
+}) %>
+<section class="tool-hero">
+  <div>
+    <p class="eyebrow">Design QA utility</p>
+    <h1>Extract every color from CSS, HTML, SVG, and Figma JSON exports.</h1>
+    <p class="lede">
+      Upload multiple assets or paste markup to surface every hex code, rgb/rgba value, or CSS named color. Get frequency counts, per-file breakdowns, and a ready-to-share palette preview.
+    </p>
+    <ul class="trust-points">
+      <li>Supports .css, .html, .svg, and .json exports from design tools.</li>
+      <li>Counts total and unique colors so you can gauge token sprawl.</li>
+      <li>Palette preview helps teams compare against brand standards.</li>
+    </ul>
+  </div>
+  <div class="converter-card">
+    <form id="extract-form" enctype="multipart/form-data">
+      <label for="text">Optional inline markup</label>
+      <textarea id="text" name="text" class="form-control" rows="4" placeholder="body { background: #0d1117; color: rgb(201, 209, 217); }"></textarea>
+
+      <label for="files" class="mt-3">Upload files (.css, .html, .svg, .json)</label>
+      <input id="files" name="files" type="file" class="form-control" accept=".css,.html,.svg,.json" multiple />
+      <p class="help-text">Processing stays in-memory—no uploads are persisted.</p>
+
+      <button type="submit" class="button primary btn btn-primary btn-modern full-width">Extract colors</button>
+      <div class="flash flash-error mt-2" id="error" style="display:none;"></div>
+    </form>
+  </div>
+</section>
+
+<section class="result-panel">
+  <div class="result-card" id="results" style="display:none;">
+    <h2>Palette overview</h2>
+    <p class="help-text" id="summary"></p>
+    <div id="palette" class="swatch-grid"></div>
+  </div>
+  <div class="result-card">
+    <h2>Per-file breakdown</h2>
+    <div id="items" class="result-grid"></div>
+  </div>
+</section>
+
+<style>
+  .swatch-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .swatch {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .swatch-color {
+    height: 64px;
+  }
+
+  .swatch-body {
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('extract-form');
+  const errorBox = document.getElementById('error');
+  const results = document.getElementById('results');
+  const summary = document.getElementById('summary');
+  const palette = document.getElementById('palette');
+  const items = document.getElementById('items');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorBox.style.display = 'none';
+    results.style.display = 'none';
+    palette.innerHTML = '';
+    items.innerHTML = '';
+
+    const data = new FormData();
+    const files = document.getElementById('files').files;
+    for (const file of files) {
+      data.append('files', file);
+    }
+    data.set('text', document.getElementById('text').value);
+
+    try {
+      const response = await fetch('/api/extract-colors', { method: 'POST', body: data });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Extraction failed.');
+      }
+
+      summary.textContent = `Found ${payload.totalColors} color mentions across ${payload.sources.length} inputs with ${payload.uniqueColors} unique colors.`;
+
+      renderPalette(payload.palette);
+      renderItems(payload.sources);
+      results.style.display = 'block';
+    } catch (error) {
+      errorBox.textContent = error.message;
+      errorBox.style.display = 'block';
+    }
+  });
+
+  function renderPalette(entries) {
+    if (!entries.length) {
+      palette.innerHTML = '<p class="help-text">No colors detected.</p>';
+      return;
+    }
+
+    entries.forEach((entry) => {
+      const swatch = document.createElement('div');
+      swatch.classList.add('swatch');
+
+      const colorBlock = document.createElement('div');
+      colorBlock.classList.add('swatch-color');
+      colorBlock.style.background = entry.color;
+      swatch.appendChild(colorBlock);
+
+      const body = document.createElement('div');
+      body.classList.add('swatch-body');
+
+      const value = document.createElement('strong');
+      value.textContent = entry.color;
+      body.appendChild(value);
+
+      const pillBar = document.createElement('div');
+      pillBar.classList.add('pill-bar');
+      const pill = document.createElement('span');
+      pill.classList.add('pill');
+      pill.textContent = `${entry.occurrences} uses`;
+      pillBar.appendChild(pill);
+      body.appendChild(pillBar);
+
+      swatch.appendChild(body);
+      palette.appendChild(swatch);
+    });
+  }
+
+  function renderItems(results) {
+    if (!results.length) {
+      items.innerHTML = '<p class="help-text">No inputs were processed.</p>';
+      return;
+    }
+
+    results.forEach((result) => {
+      const card = document.createElement('article');
+      card.classList.add('result-card');
+
+      const title = document.createElement('h3');
+      title.textContent = result.source;
+      card.appendChild(title);
+
+      const pillBar = document.createElement('div');
+      pillBar.classList.add('pill-bar');
+      pillBar.appendChild(createPill(`${result.count} matches`));
+      pillBar.appendChild(createPill(`${result.uniqueColors} unique`));
+      card.appendChild(pillBar);
+
+      if (result.error) {
+        const alert = document.createElement('div');
+        alert.classList.add('flash', 'flash-error');
+        alert.textContent = result.error;
+        card.appendChild(alert);
+        items.appendChild(card);
+        return;
+      }
+
+      const list = document.createElement('ul');
+      list.classList.add('pill-bar');
+      list.style.flexWrap = 'wrap';
+
+      result.colors.slice(0, 24).forEach((color) => {
+        list.appendChild(createPill(`${color.color} • ${color.occurrences}`));
+      });
+
+      card.appendChild(list);
+      items.appendChild(card);
+    });
+  }
+
+  function createPill(text) {
+    const pill = document.createElement('span');
+    pill.classList.add('pill');
+    pill.textContent = text;
+    return pill;
+  }
+</script>
+<%- include('../../views/partials/page-bottom') %>

@@ -59,6 +59,7 @@ app.use(
   express.static(path.join(__dirname, 'apps/hashtag-mention-extractor/wwwroot'))
 );
 app.use('/highlighted-text-extractor', express.static(path.join(__dirname, 'apps/highlighted-text-extractor')));
+app.use('/color-extractor', express.static(path.join(__dirname, 'apps/color-extractor/wwwroot')));
 app.use('/table-data-extractor', express.static(path.join(__dirname, 'apps/table-data-extractor/wwwroot')));
 app.use(morgan('dev'));
 
