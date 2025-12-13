@@ -322,6 +322,11 @@ p {
   margin-top: 1rem;
 }
 
+.control-card {
+  padding: 1rem;
+  background: var(--panel);
+}
+
 .card-ghost {
   background: var(--panel-soft);
 }
@@ -380,6 +385,10 @@ p {
 .lede {
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.lede {
+  margin-bottom: 0.75rem;
 }
 
 .eyebrow {
@@ -501,6 +510,13 @@ button.ghost,
   flex-wrap: wrap;
 }
 
+.checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
 /* Layout helpers */
 .controls-grid {
   display: grid;
@@ -557,6 +573,12 @@ pre,
 
 .result-grid {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.results-list article,
+.toast,
+.notice {
+  display: block;
 }
 
 .results-list {
