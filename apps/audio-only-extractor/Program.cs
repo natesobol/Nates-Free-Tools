@@ -1,5 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Http;
+using FFMpegCore;
+using FFMpegCore.Enums;
+using FFMpegCore.Extensions.Downloader;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +14,12 @@ var app = builder.Build();
 app.UseResponseCompression();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+var workingDirectory = Path.Combine(Path.GetTempPath(), "audio-only-extractor");
+Directory.CreateDirectory(workingDirectory);
+
+var ytDlpPathTask = EnsureYtDlpAsync(workingDirectory);
+var ffmpegPathTask = EnsureFfmpegAsync(workingDirectory);
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -46,24 +56,23 @@ app.MapPost("/api/extract-audio", async Task<IResult> (AudioExtractionRequest re
         return Results.BadRequest(new { error = "Trim end must be greater than trim start when both are provided." });
     }
 
-    if (!await ToolExistsAsync("yt-dlp", "--version"))
+    var ytDlpPath = await ytDlpPathTask;
+    if (ytDlpPath is null)
     {
-        return Results.BadRequest(new { error = "yt-dlp is required on the server to download audio." });
+        return Results.BadRequest(new { error = "Unable to download the yt-dlp helper. Try again in a moment." });
     }
 
-    if (!await ToolExistsAsync("ffmpeg", "-version"))
+    var ffmpegPath = await ffmpegPathTask;
+    if (ffmpegPath is null)
     {
-        return Results.BadRequest(new { error = "ffmpeg is required on the server to transcode audio." });
+        return Results.BadRequest(new { error = "Unable to download the ffmpeg dependency." });
     }
-
-    var workingDirectory = Path.Combine(Path.GetTempPath(), "audio-only-extractor");
-    Directory.CreateDirectory(workingDirectory);
 
     var jobId = Guid.NewGuid().ToString("N");
     var downloadBase = Path.Combine(workingDirectory, jobId);
     var downloadTemplate = downloadBase + ".%(ext)s";
 
-    var downloadResult = await RunCommandAsync("yt-dlp", $"-f bestaudio --no-playlist --no-progress -o \"{downloadTemplate}\" \"{request.Url}\"");
+    var downloadResult = await RunCommandAsync(ytDlpPath, $"-f bestaudio --no-playlist --no-progress -o \"{downloadTemplate}\" \"{request.Url}\"");
 
     if (!downloadResult.Success)
     {
@@ -81,7 +90,7 @@ app.MapPost("/api/extract-audio", async Task<IResult> (AudioExtractionRequest re
     var outputPath = Path.Combine(workingDirectory, $"{jobId}-clean.{format}");
     var ffmpegArguments = BuildFfmpegArguments(downloadedFile, outputPath, format, request);
 
-    var ffmpegResult = await RunCommandAsync("ffmpeg", ffmpegArguments);
+    var ffmpegResult = await RunCommandAsync(ffmpegPath, ffmpegArguments);
 
     if (!ffmpegResult.Success || !File.Exists(outputPath))
     {
@@ -96,6 +105,65 @@ app.MapPost("/api/extract-audio", async Task<IResult> (AudioExtractionRequest re
 });
 
 app.Run();
+
+static async Task<string?> EnsureYtDlpAsync(string toolsDirectory)
+{
+    var executable = Path.Combine(toolsDirectory, OperatingSystem.IsWindows() ? "yt-dlp.exe" : "yt-dlp");
+    if (File.Exists(executable))
+    {
+        return executable;
+    }
+
+    try
+    {
+        using var client = new HttpClient();
+        var downloadUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty);
+        var bytes = await client.GetByteArrayAsync(downloadUrl);
+        await File.WriteAllBytesAsync(executable, bytes);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            var chmodResult = await RunCommandAsync("chmod", $"+x \"{executable}\"");
+            if (!chmodResult.Success)
+            {
+                return null;
+            }
+        }
+
+        return executable;
+    }
+    catch
+    {
+        return null;
+    }
+}
+
+static async Task<string?> EnsureFfmpegAsync(string toolsDirectory)
+{
+    var binaryFolder = Path.Combine(toolsDirectory, "ffmpeg");
+    Directory.CreateDirectory(binaryFolder);
+
+    var ffmpegExecutable = Path.Combine(binaryFolder, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
+    if (!File.Exists(ffmpegExecutable))
+    {
+        try
+        {
+            GlobalFFOptions.Configure(options =>
+            {
+                options.BinaryFolder = binaryFolder;
+                options.TemporaryFilesFolder = toolsDirectory;
+            });
+
+            await FFMpegDownloader.GetLatestVersion(FFMpegVersion.Official, binaryFolder);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    return File.Exists(ffmpegExecutable) ? ffmpegExecutable : null;
+}
 
 static bool IsSupportedPlatform(string url)
 {
@@ -247,19 +315,6 @@ static async Task<CommandResult> RunCommandAsync(string fileName, string argumen
     }
 
     return await tcs.Task;
-}
-
-static async Task<bool> ToolExistsAsync(string fileName, string arguments)
-{
-    try
-    {
-        var result = await RunCommandAsync(fileName, arguments);
-        return result.Success;
-    }
-    catch
-    {
-        return false;
-    }
 }
 
 record AudioExtractionRequest

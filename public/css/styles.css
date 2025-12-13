@@ -783,6 +783,48 @@ textarea:focus {
   margin-top: 0;
 }
 
+.seo-content,
+.subscription-item,
+.bg-white,
+.light-surface {
+  color: #000;
+}
+
+.seo-content h1,
+.seo-content h2,
+.seo-content h3,
+.seo-content h4,
+.seo-content h5,
+.subscription-item h1,
+.subscription-item h2,
+.subscription-item h3,
+.subscription-item h4,
+.subscription-item h5,
+.bg-white h1,
+.bg-white h2,
+.bg-white h3,
+.bg-white h4,
+.bg-white h5,
+.light-surface h1,
+.light-surface h2,
+.light-surface h3,
+.light-surface h4,
+.light-surface h5,
+.seo-content p,
+.subscription-item p,
+.bg-white p,
+.light-surface p,
+.seo-content .muted,
+.subscription-item .muted,
+.bg-white .muted,
+.light-surface .muted,
+.seo-content .hint,
+.subscription-item .hint,
+.bg-white .hint,
+.light-surface .hint {
+  color: #000;
+}
+
 .faq {
   margin: 12px 0 0;
   padding: 0;
