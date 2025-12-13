@@ -48,8 +48,62 @@ a:hover {
 .muted,
 .helper-text,
 .eyebrow,
-.brand-tagline {
+.brand-tagline,
+.lead,
+.text-secondary,
+.text-body-secondary,
+.text-body-tertiary,
+.text-black-50,
+.text-muted {
   color: #ffffff !important;
+}
+
+.bg-white,
+.bg-light,
+.bg-body,
+.bg-body-tertiary,
+.card,
+.card-body,
+.card-header,
+.list-group,
+.list-group-item,
+.accordion-item,
+.accordion-body,
+.accordion-button,
+.modal-content,
+.dropdown-menu,
+.offcanvas,
+.offcanvas-body,
+.navbar,
+.navbar-nav,
+.alert,
+.badge.bg-light,
+.toast,
+.notice {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.accordion-button,
+.accordion-button:not(.collapsed) {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(20, 33, 71, 0.85), rgba(8, 19, 44, 0.9));
+  box-shadow: none;
+}
+
+.card,
+.card-body,
+.card-header,
+.list-group-item,
+.dropdown-menu,
+.modal-content,
+.alert {
+  border: 1px solid var(--border);
+}
+
+.list-group-item + .list-group-item {
+  border-top: 1px solid var(--border);
 }
 
 main,
