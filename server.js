@@ -13,6 +13,7 @@ import excelRoutes from './apps/excel-to-json/src/routes/excel.js';
 import csvXmlRoutes from './apps/csv-xml-converter/src/routes/csv-xml.js';
 import powerpointRoutes from './apps/powerpoint-to-pdf/src/routes/powerpoint.js';
 import { attachSupabase } from './src/middleware/auth.js';
+import htmlCleanerRoutes from './src/routes/htmlCleaner.js';
 
 dotenv.config();
 
@@ -117,6 +118,7 @@ app.use(attachSupabase);
 app.use('/', pageRoutes);
 app.use('/', authRoutes);
 app.use('/', adminRoutes);
+app.use('/', htmlCleanerRoutes);
 app.use('/', excelRoutes);
 app.use('/', csvXmlRoutes);
 app.use('/', powerpointRoutes);
